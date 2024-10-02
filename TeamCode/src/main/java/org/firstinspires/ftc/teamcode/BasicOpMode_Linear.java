@@ -53,67 +53,157 @@
         @TeleOp(name="Basic: Linear OpMode", group="Linear OpMode")
         public class BasicOpMode_Linear extends LinearOpMode {
 
-            // Declare OpMode members.
             private ElapsedTime runtime = new ElapsedTime();
             private DcMotor FrontLeftMotor = null;
             private DcMotor BackLeftMotor = null;
             private DcMotor FrontRightMotor = null;
             private DcMotor BackRightMotor = null;
 
+            // Odometer variables
+            private final double wheelDiameter = 4.0; // Wheel diameter in inches
+            private final double encoderCountsPerRevolution = 1120; // REV 20 motor encoder counts
+            private double distanceTravelled = 0.0; // in inches
+
+            // Current position variables
+            private double posX = 0.0; // X position in inches
+            private double posY = 0.0; // Y position in inches
+            private double angle = 0.0; // Robot's orientation in degrees
+
+            private volatile boolean odometryRunning = true;
 
             @Override
             public void runOpMode() {
                 telemetry.addData("Status", "Initialized");
                 telemetry.update();
 
-                // Initialize the hardware variables. Note that the strings used here as parameters
-                // to 'get' must correspond to the names assigned during the robot configuration
-                // step (using the FTC Robot Controller app on the phone).
+                // Initialize the hardware variables
                 FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
                 BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");
                 FrontRightMotor = hardwareMap.get(DcMotor.class, "FRM");
                 BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
 
-                // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
-                // Pushing the left stick forward MUST make robot go forward. So adjust these two lines based on your first test drive.
-                // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
+                // Set motor directions
                 FrontRightMotor.setDirection(DcMotor.Direction.FORWARD);
                 BackRightMotor.setDirection(DcMotor.Direction.FORWARD);
                 FrontLeftMotor.setDirection(DcMotor.Direction.REVERSE);
                 BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
 
-                // Wait for the game to start (driver presses START)
+                // Reset encoders
+                resetEncoders();
+
+                // Start the odometry thread
+                new Thread(new OdometerTask()).start();
+
+                // Wait for the game to start
                 waitForStart();
                 runtime.reset();
 
-                // run until the end of the match (driver presses STOP)
+                // Run until the end of the match
                 while (opModeIsActive()) {
-
-                    // Setup a variable for each drive wheel to save power level for telemetry
+                    // Drive control variables
                     double leftPower;
                     double rightPower;
 
-                    // Choose to drive using either Tank Mode, or POV Mode
-                    // Comment out the method that's not used.  The default below is POV.
-
-                    // POV Mode uses left stick to go forward, and right stick to turn.
-                    // - This uses basic math to combine motions and is easier to drive straight.
-                    double y = -gamepad1.left_stick_y;
-                    double x = gamepad1.left_stick_x;
-                    double rx = gamepad1.right_stick_x;
+                    // POV Mode control
+                    double y = -gamepad1.left_stick_y; // Forward/backward
+                    double x = gamepad1.left_stick_x; // Left/right
+                    double rx = gamepad1.right_stick_x; // Rotation
 
                     leftPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
                     rightPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-                    // Send calculated power to wheels
+
+                    // Set motor powers
                     FrontLeftMotor.setPower((y + x + rx) / leftPower);
                     BackLeftMotor.setPower((y - x + rx) / leftPower);
                     FrontRightMotor.setPower((y - x - rx) / rightPower);
                     BackRightMotor.setPower((y + x - rx) / rightPower);
 
-                    // Show the elapsed game time and wheel power.
+                    // Update angle based on rotation input, apply scaling factor
+                    double angleChange = rx * 5; // Adjust sensitivity factor as needed
+                    angle = (angle + angleChange) % 360; // Keep angle within 0-360 degrees
+
+                    // Show the elapsed game time and odometer data
                     telemetry.addData("Status", "Run Time: " + runtime.toString());
-                    telemetry.addData("Motors", "left (%.2f), right (%.2f)", -leftPower, -rightPower);
+                    telemetry.addData("Distance Travelled (in)", distanceTravelled);
+                    telemetry.addData("Current Position (X,Y)", "X: %.2f, Y: %.2f", posX, posY);
+                    telemetry.addData("Orientation", "Angle: %.2f", angle);
                     telemetry.update();
+                }
+
+                // Stop the odometry thread when OpMode ends
+                odometryRunning = false;
+            }
+
+            private void resetEncoders() {
+                FrontLeftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                FrontRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                BackLeftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                BackRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                sleep(100); // Allow time for the reset to take effect
+                setMotorRunWithoutEncoder();
+            }
+
+            private void setMotorRunWithoutEncoder() {
+                FrontLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                FrontRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                BackLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                BackRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            }
+
+            private class OdometerTask implements Runnable {
+                @Override
+                public void run() {
+                    int previousFrontLeftCounts = FrontLeftMotor.getCurrentPosition();
+                    int previousFrontRightCounts = FrontRightMotor.getCurrentPosition();
+                    int previousBackLeftCounts = BackLeftMotor.getCurrentPosition();
+                    int previousBackRightCounts = BackRightMotor.getCurrentPosition();
+
+                    while (odometryRunning) {
+                        // Get current encoder counts
+                        int currentFrontLeftCounts = FrontLeftMotor.getCurrentPosition();
+                        int currentFrontRightCounts = FrontRightMotor.getCurrentPosition();
+                        int currentBackLeftCounts = BackLeftMotor.getCurrentPosition();
+                        int currentBackRightCounts = BackRightMotor.getCurrentPosition();
+
+                        // Calculate the change in counts
+                        int deltaFrontLeftCounts = currentFrontLeftCounts - previousFrontLeftCounts;
+                        int deltaFrontRightCounts = currentFrontRightCounts - previousFrontRightCounts;
+                        int deltaBackLeftCounts = currentBackLeftCounts - previousBackLeftCounts;
+                        int deltaBackRightCounts = currentBackRightCounts - previousBackRightCounts;
+
+                        // Calculate distance traveled by each wheel
+                        double distanceFrontLeft = (deltaFrontLeftCounts / encoderCountsPerRevolution) * (Math.PI * wheelDiameter);
+                        double distanceFrontRight = (deltaFrontRightCounts / encoderCountsPerRevolution) * (Math.PI * wheelDiameter);
+                        double distanceBackLeft = (deltaBackLeftCounts / encoderCountsPerRevolution) * (Math.PI * wheelDiameter);
+                        double distanceBackRight = (deltaBackRightCounts / encoderCountsPerRevolution) * (Math.PI * wheelDiameter);
+
+                        // Average the distances
+                        double averageDistance = (distanceFrontLeft + distanceFrontRight + distanceBackLeft + distanceBackRight) / 4.0;
+
+                        // Update distance traveled
+                        distanceTravelled += averageDistance;
+
+                        // Calculate change in position
+                        double deltaX = averageDistance * Math.cos(Math.toRadians(angle));
+                        double deltaY = averageDistance * Math.sin(Math.toRadians(angle));
+
+                        // Update current position
+                        posX += deltaX;
+                        posY += deltaY;
+
+                        // Update previous counts
+                        previousFrontLeftCounts = currentFrontLeftCounts;
+                        previousFrontRightCounts = currentFrontRightCounts;
+                        previousBackLeftCounts = currentBackLeftCounts;
+                        previousBackRightCounts = currentBackRightCounts;
+
+                        // Sleep for a short period to avoid overwhelming the CPU
+                        try {
+                            Thread.sleep(50); // Adjust this value as needed
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
                 }
             }
         }
