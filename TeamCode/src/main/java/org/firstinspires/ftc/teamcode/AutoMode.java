@@ -19,9 +19,6 @@ public class AutoMode extends LinearOpMode {
     // Odometry variables
     private final double wheelDiameter = 4.0; // Wheel diameter in inches
     private final double encoderCountsPerRevolution = 1120; // REV 20 motor encoder counts
-    private double distanceTravelled = 0.0; // in inches
-
-    // Current position variables
     private double posX = 0.0; // X position in inches
     private double posY = 0.0; // Y position in inches
     private double angle = 0.0; // Robot's orientation in degrees
@@ -56,15 +53,10 @@ public class AutoMode extends LinearOpMode {
         waitForStart();
         runtime.reset();
 
-        // Autonomous movements with telemetry updates
-        moveForward(0.5, 1000);
-        updateTelemetry();
-        strafeRight(0.5, 1000);
-        updateTelemetry();
-        turnByDegrees(90, 0.5);  // Example of turning by 90 degrees
-        updateTelemetry();
-        moveBackward(0.5, 1000);
-        updateTelemetry();
+        // Example movements using the new system
+        moveToPosition(24, 12, 0.5);  // Move to (24, 24) inches
+        moveToPosition(0, 24, 0.5);   // Move to (0, 24) inches
+        moveToPosition(0, 0, 0.5);    // Move back to the origin (0, 0)
 
         telemetry.addData("Path", "Complete");
         telemetry.update();
@@ -76,13 +68,15 @@ public class AutoMode extends LinearOpMode {
     // Odometry-related methods
 
     private void resetEncoders() {
-        FrontLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        FrontRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        BackLeftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        BackRightMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        FrontLeftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+        FrontRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+        BackLeftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+        BackRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
         sleep(100); // Allow time for the reset to take effect
         setMotorRunWithoutEncoder();
     }
+
+
 
     private void setMotorRunWithoutEncoder() {
         FrontLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -121,9 +115,6 @@ public class AutoMode extends LinearOpMode {
                 // Average the distances
                 double averageDistance = (distanceFrontLeft + distanceFrontRight + distanceBackLeft + distanceBackRight) / 4.0;
 
-                // Update distance traveled
-                distanceTravelled += averageDistance;
-
                 // Calculate change in position
                 double deltaX = averageDistance * Math.cos(Math.toRadians(angle));
                 double deltaY = averageDistance * Math.sin(Math.toRadians(angle));
@@ -148,70 +139,41 @@ public class AutoMode extends LinearOpMode {
         }
     }
 
-    // Movement methods for mecanum drive
+    // Unified movement method for mecanum drive
+    private void moveInDirection(double power, double angleInDegrees, long time) {
+        double angleInRadians = Math.toRadians(angleInDegrees);
 
-    private void moveForward(double power, long time) {
-        FrontLeftMotor.setPower(power);
-        BackLeftMotor.setPower(power);
-        FrontRightMotor.setPower(power);
-        BackRightMotor.setPower(power);
+        // Calculate motor powers
+        double frontLeftPower = power * (Math.sin(angleInRadians) + Math.cos(angleInRadians));
+        double backLeftPower = power * (Math.sin(angleInRadians) - Math.cos(angleInRadians));
+        double frontRightPower = power * (Math.sin(angleInRadians) - Math.cos(angleInRadians));
+        double backRightPower = power * (Math.sin(angleInRadians) + Math.cos(angleInRadians));
+
+        // Apply motor powers
+        FrontLeftMotor.setPower(frontLeftPower);
+        BackLeftMotor.setPower(backLeftPower);
+        FrontRightMotor.setPower(frontRightPower);
+        BackRightMotor.setPower(backRightPower);
+
         sleep(time);
         stopMotors();
     }
 
-    private void moveBackward(double power, long time) {
-        FrontLeftMotor.setPower(-power);
-        BackLeftMotor.setPower(-power);
-        FrontRightMotor.setPower(-power);
-        BackRightMotor.setPower(-power);
-        sleep(time);
-        stopMotors();
-    }
+    // Navigate to a specific (x, y) coordinate
+    private void moveToPosition(double targetX, double targetY, double power) {
+        double deltaX = targetX - posX;
+        double deltaY = targetY - posY;
 
-    private void strafeRight(double power, long time) {
-        FrontLeftMotor.setPower(power);
-        BackLeftMotor.setPower(-power);
-        FrontRightMotor.setPower(-power);
-        BackRightMotor.setPower(power);
-        sleep(time);
-        stopMotors();
-    }
+        // Calculate the angle and distance to the target
+        double distanceToTarget = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        double angleToTarget = Math.toDegrees(Math.atan2(deltaY, deltaX));
 
-    private void strafeLeft(double power, long time) {
-        FrontLeftMotor.setPower(-power);
-        BackLeftMotor.setPower(power);
-        FrontRightMotor.setPower(power);
-        BackRightMotor.setPower(-power);
-        sleep(time);
-        stopMotors();
-    }
+        // Move in the direction of the target
+        moveInDirection(power, angleToTarget, (long)(distanceToTarget * 1000)); // Adjust timing based on your robot's speed
 
-    // New method to turn the robot by a specific degree
-    private void turnByDegrees(double degrees, double power) {
-        // Calculate the target angle
-        double targetAngle = (angle + degrees) % 360;
-        if (targetAngle < 0) targetAngle += 360; // Ensure the target angle is within 0-360 degrees
-
-        // Determine turn direction
-        boolean turnRight = degrees > 0;
-
-        // Continue turning until the robot reaches the target angle
-        while (opModeIsActive() && Math.abs(angle - targetAngle) > 1) {
-            if (turnRight) {
-                FrontLeftMotor.setPower(power);
-                BackLeftMotor.setPower(power);
-                FrontRightMotor.setPower(-power);
-                BackRightMotor.setPower(-power);
-            } else {
-                FrontLeftMotor.setPower(-power);
-                BackLeftMotor.setPower(-power);
-                FrontRightMotor.setPower(power);
-                BackRightMotor.setPower(power);
-            }
-            telemetry.addData("Turning", "Target Angle: %.2f, Current Angle: %.2f", targetAngle, angle);
-            telemetry.update();
-        }
-        stopMotors();
+        // Update position
+        posX = targetX;
+        posY = targetY;
     }
 
     private void stopMotors() {
@@ -219,13 +181,5 @@ public class AutoMode extends LinearOpMode {
         BackLeftMotor.setPower(0);
         FrontRightMotor.setPower(0);
         BackRightMotor.setPower(0);
-    }
-
-    // Update telemetry with odometry data
-    private void updateTelemetry() {
-        telemetry.addData("X Position (inches)", posX);
-        telemetry.addData("Y Position (inches)", posY);
-        telemetry.addData("Orientation (degrees)", angle);
-        telemetry.update();
     }
 }
