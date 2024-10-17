@@ -61,7 +61,7 @@ public class AutoMode extends LinearOpMode {
         updateTelemetry();
         strafeRight(0.5, 1000);
         updateTelemetry();
-        turnByDegrees(90, 0.7);  // Example of turning by 90 degrees
+        turnByDegrees(90, 0.5);  // Example of turning by 90 degrees
         updateTelemetry();
         moveBackward(0.5, 1000);
         updateTelemetry();
@@ -186,47 +186,33 @@ public class AutoMode extends LinearOpMode {
         stopMotors();
     }
 
-    // New method to turn the robot by a specific degree based on encoders
+    // New method to turn the robot by a specific degree
     private void turnByDegrees(double degrees, double power) {
-        // Determine the direction of the turn
+        // Calculate the target angle
+        double targetAngle = (angle + degrees) % 360;
+        if (targetAngle < 0) targetAngle += 360; // Ensure the target angle is within 0-360 degrees
+
+        // Determine turn direction
         boolean turnRight = degrees > 0;
 
-        // Calculate the total angle change needed and the corresponding encoder counts
-        double targetAngleChange = Math.abs(degrees);  // The absolute number of degrees to turn
-        double initialAngle = angle;  // Store the initial angle
-        double targetAngle = initialAngle + degrees;  // The angle we're turning towards
-
-        // Set a tolerance for the turn
-        double angleTolerance = 1;  // 1.5 degree tolerance for precision
-
-        // Reset encoders to track turning more accurately
-        resetEncoders();
-
-        // Turning loop
-        while (opModeIsActive() && Math.abs(angle - targetAngle) < angleTolerance) {
-            // If turning right
+        // Continue turning until the robot reaches the target angle
+        while (opModeIsActive() && Math.abs(angle - targetAngle) > 1) {
             if (turnRight) {
                 FrontLeftMotor.setPower(power);
                 BackLeftMotor.setPower(power);
                 FrontRightMotor.setPower(-power);
                 BackRightMotor.setPower(-power);
-            } else { // If turning left
+            } else {
                 FrontLeftMotor.setPower(-power);
                 BackLeftMotor.setPower(-power);
                 FrontRightMotor.setPower(power);
                 BackRightMotor.setPower(power);
             }
-
-            // Update telemetry with current angle
             telemetry.addData("Turning", "Target Angle: %.2f, Current Angle: %.2f", targetAngle, angle);
             telemetry.update();
         }
-
-        // Stop the motors after the turn is complete
         stopMotors();
     }
-
-
 
     private void stopMotors() {
         FrontLeftMotor.setPower(0);
