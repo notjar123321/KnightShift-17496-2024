@@ -44,6 +44,8 @@
             private DcMotor BackLeftMotor = null;
             private DcMotor FrontRightMotor = null;
             private DcMotor BackRightMotor = null;
+            private DcMotor armMotor1 = null; // First motor for arm rotation
+            private DcMotor armMotor2 = null;
 
             // Odometer variables
             private final double wheelDiameter = 4.0; // Wheel diameter in inches
@@ -56,7 +58,7 @@
             private double angle = 0.0; // Robot's orientation in degrees
 
             private volatile boolean odometryRunning = true;
-
+            private boolean armControlMode = false;
             @Override
             public void runOpMode() {
                 telemetry.addData("Status", "Initialized");
@@ -67,6 +69,8 @@
                 BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");
                 FrontRightMotor = hardwareMap.get(DcMotor.class, "FRM");
                 BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
+                armMotor1 = hardwareMap.get(DcMotor.class, "CLAW1"); // First arm motor
+                armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2");
 
                 // Set motor directions
                 FrontRightMotor.setDirection(DcMotor.Direction.FORWARD);
@@ -76,6 +80,7 @@
 
                 // Reset encoders
                 resetEncoders();
+                Arm arm = new Arm(hardwareMap, runtime, telemetry);
 
                 // Start the odometry thread
                 new Thread(new OdometerTask()).start();
@@ -87,33 +92,50 @@
                 // Run until the end of the match
                 while (opModeIsActive()) {
                     // Drive control variables
-                    double leftPower;
-                    double rightPower;
+                    if (gamepad1.a) {
+                        armControlMode = !armControlMode; // Toggle control mode
+                        sleep(200); // Debounce delay
+                    }
+                    if(!armControlMode){
+                        double leftPower;
+                        double rightPower;
+                        // POV Mode control
+                        double y = -gamepad1.left_stick_y; // Forward/backward
+                        double x = gamepad1.left_stick_x; // Left/right
+                        double rx = gamepad1.right_stick_x; // Rotation
 
-                    // POV Mode control
-                    double y = -gamepad1.left_stick_y; // Forward/backward
-                    double x = gamepad1.left_stick_x; // Left/right
-                    double rx = gamepad1.right_stick_x; // Rotation
+                        leftPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+                        rightPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
 
-                    leftPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-                    rightPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+                        // Set motor powers
+                        FrontLeftMotor.setPower((y + x + rx) / leftPower);
+                        BackLeftMotor.setPower((y - x + rx) / leftPower);
+                        FrontRightMotor.setPower((y - x - rx) / rightPower);
+                        BackRightMotor.setPower((y + x - rx) / rightPower);
 
-                    // Set motor powers
-                    FrontLeftMotor.setPower((y + x + rx) / leftPower);
-                    BackLeftMotor.setPower((y - x + rx) / leftPower);
-                    FrontRightMotor.setPower((y - x - rx) / rightPower);
-                    BackRightMotor.setPower((y + x - rx) / rightPower);
+                        // Update angle based on rotation input, apply scaling factor
+                        double angleChange = rx * 5; // Adjust sensitivity factor as needed
+                        angle = (angle + angleChange) % 360; // Keep angle within 0-360 degrees
 
-                    // Update angle based on rotation input, apply scaling factor
-                    double angleChange = rx * 5; // Adjust sensitivity factor as needed
-                    angle = (angle + angleChange) % 360; // Keep angle within 0-360 degrees
+                        // Show the elapsed game time and odometer data
+                        telemetry.addData("Status", "Run Time: " + runtime.toString());
+                        telemetry.addData("Distance Travelled (in)", distanceTravelled);
+                        telemetry.addData("Current Position (X,Y)", "X: %.2f, Y: %.2f", posX, posY);
+                        telemetry.addData("Orientation", "Angle: %.2f", angle);
+                        telemetry.update();
+                    }
+                    else{
+                        double armVerticalPower = -gamepad1.left_stick_y; // Up/down
+                        armMotor1.setPower(armVerticalPower);
+                        armMotor2.setPower(armVerticalPower); // Set both motors to the same power for vertical movement
 
-                    // Show the elapsed game time and odometer data
-                    telemetry.addData("Status", "Run Time: " + runtime.toString());
-                    telemetry.addData("Distance Travelled (in)", distanceTravelled);
-                    telemetry.addData("Current Position (X,Y)", "X: %.2f, Y: %.2f", posX, posY);
-                    telemetry.addData("Orientation", "Angle: %.2f", angle);
-                    telemetry.update();
+                        // Control the arm's rotation with the right stick
+                        double armRotationPower = -gamepad1.right_stick_x; // Rotate based on joystick
+                        armMotor1.setPower(armRotationPower); // Adjust power based on right stick input
+                        armMotor2.setPower(-armRotationPower); // Reverse the direction for the second motor
+                    }
+
+
                 }
 
                 // Stop the odometry thread when OpMode ends
