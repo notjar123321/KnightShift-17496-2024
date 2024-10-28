@@ -7,6 +7,6 @@ public class RobotConstants {
     public static String FrontRightMotor = "FRM";
     public static String BackRightMotor = "BRM";
     public static String BackLeftMotor = "BLM";
-    public static String arm1 = "elbow1";
-    public static String arm2 = "elbow2";
+    public static String arm1 = "CLAW1";
+    public static String arm2 = "CLAW2";
 }
