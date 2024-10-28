@@ -1,31 +1,3 @@
-        /* Copyright (c) 2017 FIRST. All rights reserved.
-         *
-         * Redistribution and use in source and binary forms, with or without modification,
-         * are permitted (subject to the limitations in the disclaimer below) provided that
-         * the following conditions are met:
-         *
-         * Redistributions of source code must retain the above copyright notice, this list
-         * of conditions and the following disclaimer.
-         *
-         * Redistributions in binary form must reproduce the above copyright notice, this
-         * list of conditions and the following disclaimer in the documentation and/or
-         * other materials provided with the distribution.
-         *
-         * Neither the name of FIRST nor the names of its contributors may be used to endorse or
-         * promote products derived from this software without specific prior written permission.
-         *
-         * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY THIS
-         * LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-         * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-         * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-         * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
-         * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-         * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-         * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-         * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-         * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-         * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-         */
 
         package org.firstinspires.ftc.teamcode;
 
@@ -57,6 +29,16 @@
             private double posY = 0.0; // Y position in inches
             private double angle = 0.0; // Robot's orientation in degrees
 
+            //arm positions
+            private final int ARM_POSITION_DOWN = 0;
+            private final int ARM_POSITION_MIDDLE = 500;
+            private final int ARM_POSITION_UP = 1000;
+
+            //Sensitivity
+            private double sens = .7;
+
+            private int currentPos;
+
             private volatile boolean odometryRunning = true;
             private boolean armControlMode = false;
             @Override
@@ -77,6 +59,14 @@
                 BackRightMotor.setDirection(DcMotor.Direction.FORWARD);
                 FrontLeftMotor.setDirection(DcMotor.Direction.REVERSE);
                 BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
+                armMotor1.setDirection(DcMotor.Direction.FORWARD);
+                armMotor2.setDirection(DcMotor.Direction.REVERSE);
+                int groundPosition = 0;
+                int midPosition = 500;
+                int highPosition = 1000;
+
+                // Default target position
+                int targetPosition = groundPosition;
 
                 // Reset encoders
                 resetEncoders();
@@ -100,41 +90,53 @@
                         double leftPower;
                         double rightPower;
                         // POV Mode control
-                        double y = -gamepad1.left_stick_y; // Forward/backward
-                        double x = gamepad1.left_stick_x; // Left/right
-                        double rx = gamepad1.right_stick_x; // Rotation
+                        double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
+                        double x = gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
+                        double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
 
-                        leftPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-                        rightPower = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+// Calculate the largest possible input sum to scale the powers properly
+                        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
 
-                        // Set motor powers
-                        FrontLeftMotor.setPower((y + x + rx) / leftPower);
-                        BackLeftMotor.setPower((y - x + rx) / leftPower);
-                        FrontRightMotor.setPower((y - x - rx) / rightPower);
-                        BackRightMotor.setPower((y + x - rx) / rightPower);
+// Calculate motor powers
+                        double frontLeftPower = (y + x + rx) / denominator;
+                        double backLeftPower = (y - x + rx) / denominator;
+                        double frontRightPower = (y - x - rx) / denominator;
+                        double backRightPower = (y + x - rx) / denominator;
 
-                        // Update angle based on rotation input, apply scaling factor
+// Apply power scaling factor
+                        FrontLeftMotor.setPower(frontLeftPower * sens);
+                        BackLeftMotor.setPower(backLeftPower * sens);
+                        FrontRightMotor.setPower(frontRightPower * sens);
+                        BackRightMotor.setPower(backRightPower * sens);
+
+// Update angle based on rotation input, apply scaling factor
                         double angleChange = rx * 5; // Adjust sensitivity factor as needed
                         angle = (angle + angleChange) % 360; // Keep angle within 0-360 degrees
 
-                        // Show the elapsed game time and odometer data
+// Show the elapsed game time and odometer data
                         telemetry.addData("Status", "Run Time: " + runtime.toString());
                         telemetry.addData("Distance Travelled (in)", distanceTravelled);
-                        telemetry.addData("Current Position (X,Y)", "X: %.2f, Y: %.2f", posX, posY);
-                        telemetry.addData("Orientation", "Angle: %.2f", angle);
+                        telemetry.addData("Current Position (X,Y)", String.format("X: %.2f, Y: %.2f", posX, posY));
+                        telemetry.addData("Orientation", String.format("Angle: %.2f", angle));
                         telemetry.update();
+
                     }
                     else{
-                        double armVerticalPower = -gamepad1.left_stick_y; // Up/down
-                        armMotor1.setPower(armVerticalPower);
-                        armMotor2.setPower(armVerticalPower); // Set both motors to the same power for vertical movement
+                        if (gamepad1.dpad_down) {
+                            arm.moveElbow(ARM_POSITION_DOWN);
+                        } else if (gamepad1.dpad_left) {
+                            arm.moveElbow(ARM_POSITION_MIDDLE);
+                        } else if (gamepad1.dpad_up) {
+                            arm.moveElbow(ARM_POSITION_UP);
+                        }
 
-                        // Control the arm's rotation with the right stick
-                        double armRotationPower = -gamepad1.right_stick_x; // Rotate based on joystick
-                        armMotor1.setPower(armRotationPower); // Adjust power based on right stick input
-                        armMotor2.setPower(-armRotationPower); // Reverse the direction for the second motor
+                        // Update the arm's PID to hold its position
+                        arm.update();
+
+                        telemetry.addData("Arm Control", "Holding position");
                     }
 
+                    telemetry.update();
 
                 }
 
@@ -147,6 +149,7 @@
                 FrontRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 BackLeftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 BackRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                armMotor1.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 sleep(100); // Allow time for the reset to take effect
                 setMotorRunWithoutEncoder();
             }
