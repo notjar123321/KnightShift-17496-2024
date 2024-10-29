@@ -30,9 +30,9 @@
             private double angle = 0.0; // Robot's orientation in degrees
 
             //arm positions
-            private final int ARM_POSITION_DOWN = 0;
-            private final int ARM_POSITION_MIDDLE = 500;
-            private final int ARM_POSITION_UP = 1000;
+            private final int ARM_POSITION_DOWN = 0; //for motor 2 ecoder
+            private final int ARM_POSITION_MIDDLE = 578;
+            private final int ARM_POSITION_UP = 1015;
 
             //Sensitivity
             private double sens = .7;
@@ -114,26 +114,30 @@
                         angle = (angle + angleChange) % 360; // Keep angle within 0-360 degrees
 
 // Show the elapsed game time and odometer data
+
                         telemetry.addData("Status", "Run Time: " + runtime.toString());
                         telemetry.addData("Distance Travelled (in)", distanceTravelled);
                         telemetry.addData("Current Position (X,Y)", String.format("X: %.2f, Y: %.2f", posX, posY));
                         telemetry.addData("Orientation", String.format("Angle: %.2f", angle));
+                        telemetry.addData("Arm Position Motor1", armMotor1.getCurrentPosition());
+                        telemetry.addData("Arm Position Motor2", armMotor2.getCurrentPosition());
+                        telemetry.addData("Target Position", Arm.target_position);
                         telemetry.update();
+                        arm.update();
+
 
                     }
                     else{
                         if (gamepad1.dpad_down) {
-                            arm.moveElbow(ARM_POSITION_DOWN);
+                            arm.moveElbow(-10);
                         } else if (gamepad1.dpad_left) {
                             arm.moveElbow(ARM_POSITION_MIDDLE);
                         } else if (gamepad1.dpad_up) {
-                            arm.moveElbow(ARM_POSITION_UP);
+                            arm.moveElbow(10);
                         }
 
                         // Update the arm's PID to hold its position
-                        arm.update();
 
-                        telemetry.addData("Arm Control", "Holding position");
                     }
 
                     telemetry.update();
@@ -150,6 +154,8 @@
                 BackLeftMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 BackRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 armMotor1.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                armMotor2.setMode(DcMotor.RunMode.RESET_ENCODERS);
+
                 sleep(100); // Allow time for the reset to take effect
                 setMotorRunWithoutEncoder();
             }
