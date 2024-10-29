@@ -91,7 +91,7 @@ public class Arm {
         motor1.setPower(0.5); // Adjust power as needed
         motor2.setPower(0.5);
     }
-
+//hallo
 
     public void setTargetVelocity(double velocity) {
         target_velocity = velocity; // Set target velocity in ticks per second
