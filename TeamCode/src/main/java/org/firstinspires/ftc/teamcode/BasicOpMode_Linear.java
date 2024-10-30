@@ -5,6 +5,7 @@
         import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
         import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
         import com.qualcomm.robotcore.hardware.DcMotor;
+        import com.qualcomm.robotcore.hardware.Servo;
         import com.qualcomm.robotcore.util.ElapsedTime;
         import com.qualcomm.robotcore.util.Range;
 
@@ -20,6 +21,9 @@
             private DcMotor armMotor2 = null;
             private DcMotor SC1 = null; // First motor for arm rotation
             private DcMotor SC2 = null;
+            private Servo wrist1 = null; // First wrist servo
+            private Servo wrist2 = null;
+
 
 
             // Odometer variables
@@ -177,6 +181,15 @@
                                 arm.moveElbow(arm_bottom);
                         } else if (gamepad1.dpad_up) {
                             arm.moveElbow(3);
+                        }
+                        if (gamepad1.right_bumper) {
+                            // Move wrist up (adjust the position as needed)
+                            wrist1.setPosition(1.0); // Full position for servo 1
+                            wrist2.setPosition(1.0); // Full position for servo 2
+                        } else if (gamepad1.left_bumper) {
+                            // Move wrist down (adjust the position as needed)
+                            wrist1.setPosition(0.0); // Home position for servo 1
+                            wrist2.setPosition(0.0); // Home position for servo 2
                         }
                         telemetry.update();
                         arm.update();
