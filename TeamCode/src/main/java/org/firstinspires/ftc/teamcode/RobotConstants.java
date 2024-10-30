@@ -9,4 +9,7 @@ public class RobotConstants {
     public static String BackLeftMotor = "BLM";
     public static String arm1 = "CLAW1";
     public static String arm2 = "CLAW2";
+    public static String SC1 = "Scissor1";
+    public static String SC2 = "Scissor2";
+
 }

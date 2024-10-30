@@ -18,6 +18,9 @@
             private DcMotor BackRightMotor = null;
             private DcMotor armMotor1 = null; // First motor for arm rotation
             private DcMotor armMotor2 = null;
+            private DcMotor SC1 = null; // First motor for arm rotation
+            private DcMotor SC2 = null;
+
 
             // Odometer variables
             private final double wheelDiameter = 4.0; // Wheel diameter in inches
@@ -30,9 +33,15 @@
             private double angle = 0.0; // Robot's orientation in degrees
 
             //arm positions
-            private final int ARM_POSITION_DOWN = 0; //for motor 2 ecoder
-            private final int ARM_POSITION_MIDDLE = 578;
-            private final int ARM_POSITION_UP = 1015;
+            private final int arm_down = 0; //for motor 2 ecoder
+            private final int arm_middle = 578;
+            private final int arm_bottom = 1015;
+
+
+            //Scissor Lift positions
+            public final int upPosition = -4000;
+            public final int downPosition = 0;
+
 
             //Sensitivity
             private double sens = .7;
@@ -41,6 +50,8 @@
 
             private volatile boolean odometryRunning = true;
             private boolean armControlMode = false;
+            private boolean isSCup = false;
+
             @Override
             public void runOpMode() {
                 telemetry.addData("Status", "Initialized");
@@ -53,6 +64,10 @@
                 BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
                 armMotor1 = hardwareMap.get(DcMotor.class, "CLAW1"); // First arm motor
                 armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2");
+                SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
+                SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
+
+
 
                 // Set motor directions
                 FrontRightMotor.setDirection(DcMotor.Direction.FORWARD);
@@ -62,16 +77,17 @@
                 armMotor1.setDirection(DcMotor.Direction.FORWARD);
                 armMotor2.setDirection(DcMotor.Direction.REVERSE);
                 int groundPosition = 0;
-                int midPosition = 500;
+                int midPosition = 580;
                 int highPosition = 1000;
 
                 // Default target position
-                int targetPosition = groundPosition;
+
 
                 // Reset encoders
                 resetEncoders();
                 Arm arm = new Arm(hardwareMap, runtime, telemetry);
-
+                ScissorLift scissor1 = new ScissorLift(hardwareMap, runtime, telemetry);
+                ScissorLift scissor2 = new ScissorLift(hardwareMap, runtime, telemetry);
                 // Start the odometry thread
                 new Thread(new OdometerTask()).start();
 
@@ -83,9 +99,33 @@
                 while (opModeIsActive()) {
                     // Drive control variables
                     if (gamepad1.a) {
+
                         armControlMode = !armControlMode; // Toggle control mode
                         sleep(200); // Debounce delay
                     }
+                    if (gamepad1.x) {
+                        if (!isSCup) {
+                            // Move scissor lifts to the up position
+                            SC1.setTargetPosition(upPosition);
+                            SC2.setTargetPosition(upPosition);
+                            SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                            SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                            SC1.setPower(.5); // Adjust power as necessary
+                            SC2.setPower(.5); // Adjust power as necessary
+                        } else {
+                            // Move scissor lifts to the down position
+                            SC1.setTargetPosition(downPosition);
+                            SC2.setTargetPosition(downPosition);
+                            SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                            SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                            SC1.setPower(.5); // Adjust power as necessary
+                            SC2.setPower(.5); // Adjust power as necessary
+                        }
+
+                        // Add a short delay to prevent multiple toggles from one press
+                        sleep(200);
+                    }
+
                     if(!armControlMode){
                         double leftPower;
                         double rightPower;
@@ -110,8 +150,7 @@
                         BackRightMotor.setPower(backRightPower * sens);
 
 // Update angle based on rotation input, apply scaling factor
-                        double angleChange = rx * 5; // Adjust sensitivity factor as needed
-                        angle = (angle + angleChange) % 360; // Keep angle within 0-360 degrees
+
 
 // Show the elapsed game time and odometer data
 
@@ -122,23 +161,29 @@
                         telemetry.addData("Arm Position Motor1", armMotor1.getCurrentPosition());
                         telemetry.addData("Arm Position Motor2", armMotor2.getCurrentPosition());
                         telemetry.addData("Target Position", Arm.target_position);
+                        telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
+                        telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
                         telemetry.update();
                         arm.update();
 
 
                     }
-                    else{
+                    if(armControlMode){
                         if (gamepad1.dpad_down) {
-                            arm.moveElbow(-10);
+                            arm.moveElbow(-3);
                         } else if (gamepad1.dpad_left) {
-                            arm.moveElbow(ARM_POSITION_MIDDLE);
+                            arm.moveElbow(arm_middle);
+                        } else if (gamepad1.dpad_right) {
+                                arm.moveElbow(arm_bottom);
                         } else if (gamepad1.dpad_up) {
-                            arm.moveElbow(10);
+                            arm.moveElbow(3);
                         }
-
+                        telemetry.update();
+                        arm.update();
                         // Update the arm's PID to hold its position
 
                     }
+
 
                     telemetry.update();
 
@@ -155,6 +200,9 @@
                 BackRightMotor.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 armMotor1.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 armMotor2.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                SC1.setMode(DcMotor.RunMode.RESET_ENCODERS);
+                SC2.setMode(DcMotor.RunMode.RESET_ENCODERS);
+
 
                 sleep(100); // Allow time for the reset to take effect
                 setMotorRunWithoutEncoder();

@@ -28,7 +28,7 @@ public class Arm {
     private double lastError = 0; // Last error value for PID
     private double lastTime = 0; // Last time update was called
     private double gravityCompensation = 0.005; // Gravity compensation factor
-    private double target_velocity = .005; // Target velocity for constant velocity control
+    private double target_velocity = .0005; // Target velocity for constant velocity control
 
     public Arm(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
         motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
@@ -52,33 +52,24 @@ public class Arm {
 
     public void update() {
         // Get the current position of the arm
-        double pos = (motor1.getCurrentPosition()+motor2.getCurrentPosition())/2;
+        double pos = (motor1.getCurrentPosition() + motor2.getCurrentPosition()) / 2;
         double error = target_position - pos; // Position error
-        double timePassed = timer.seconds() - lastTime;
+        double currentPower1 = motor1.getPower();
+        double currentPower2 = motor2.getPower();
 
-        lastTime = timer.seconds();
-
-        // PID calculations
-        double derivative;
-        if (timePassed == 0) { // Prevent division by zero
-            derivative = 0;
-        } else {
-            derivative = (error - lastError) / timePassed; // Derivative calculation
+        // Check if the arm is moving in the correct direction
+        if (error > 0 && (currentPower1 < 0 || currentPower2 < 0)) {
+            // If the target position is above current position but motors are moving down, reduce power
+            motor1.setPower(Range.clip(currentPower1 + 0.1, 0, 1)); // Increase power for upward motion
+            motor2.setPower(Range.clip(currentPower2 + 0.1, 0, 1));
+        } else if (error < 0 && (currentPower1 > 0 || currentPower2 > 0)) {
+            // If the target position is below current position but motors are moving up, reduce power
+            motor1.setPower(Range.clip(currentPower1 - 0.1, -1, 0)); // Decrease power for downward motion
+            motor2.setPower(Range.clip(currentPower2 - 0.1, -1, 0));
         }
-        integralSum += error * timePassed;
 
-        // Gravity compensation
-        double output = Kp * error + Ki * integralSum + Kd * derivative + gravityCompensation;
-
-        // Set motor powers based on target velocity
-        double velocityOutput = target_velocity; // For constant velocity control
-        motor1.setPower(Range.clip(output + velocityOutput, -1.0, 1.0)); // Ensure power is within limits
-        motor2.setPower(Range.clip(output + velocityOutput, -1.0, 1.0));
-
-        // Telemetry updates for debugging
-        // Update last error for next iteration
-        lastError = error;
     }
+
 
     public void moveElbow(int ticks) {
         target_position += ticks;
@@ -88,10 +79,10 @@ public class Arm {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        motor1.setPower(0.5); // Adjust power as needed
-        motor2.setPower(0.5);
+        motor1.setPower(0.2); // Adjust power as needed
+        motor2.setPower(0.2);
     }
-//hallo
+
 
     public void setTargetVelocity(double velocity) {
         target_velocity = velocity; // Set target velocity in ticks per second
