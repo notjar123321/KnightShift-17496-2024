@@ -46,6 +46,8 @@
             public final int upPosition = -4000;
             public final int downPosition = 0;
 
+            //wrist position
+            public double wristPosition = 0;
 
             //Sensitivity
             private double sens = .7;
@@ -184,16 +186,18 @@
                         }
                         if (gamepad1.right_bumper) {
                             // Move wrist up (adjust the position as needed)
-                            wrist1.setPosition(1.0); // Full position for servo 1
-                            wrist2.setPosition(1.0); // Full position for servo 2
+                            wristPosition+=.2;
+                            wrist1.setPosition(wristPosition); // Full position for servo 1
+                            wrist2.setPosition(wristPosition); // Full position for servo 2
                         } else if (gamepad1.left_bumper) {
                             // Move wrist down (adjust the position as needed)
-                            wrist1.setPosition(0.0); // Home position for servo 1
-                            wrist2.setPosition(0.0); // Home position for servo 2
+                            wristPosition-=.2;
+                            wrist1.setPosition(wristPosition); // Home position for servo 1
+                            wrist2.setPosition(wristPosition); // Home position for servo 2
                         }
                         telemetry.update();
                         arm.update();
-                        // Update the arm's PID to hold its position
+
 
                     }
 

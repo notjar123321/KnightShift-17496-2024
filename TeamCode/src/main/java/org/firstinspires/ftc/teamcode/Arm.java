@@ -28,7 +28,7 @@ public class Arm {
     private double lastError = 0; // Last error value for PID
     private double lastTime = 0; // Last time update was called
     private double gravityCompensation = 0.005; // Gravity compensation factor
-    private double target_velocity = .0005; // Target velocity for constant velocity control
+    private double target_velocity = .05; // Target velocity for constant velocity control
 
     public Arm(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
         motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
@@ -79,8 +79,8 @@ public class Arm {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        motor1.setPower(0.2); // Adjust power as needed
-        motor2.setPower(0.2);
+        motor1.setPower(0.4); // Adjust power as needed
+        motor2.setPower(0.4);
     }
 
 

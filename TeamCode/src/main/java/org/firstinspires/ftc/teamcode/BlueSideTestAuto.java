@@ -122,8 +122,7 @@ public class BlueSideTestAuto extends LinearOpMode {
         Claw claw = new Claw(hardwareMap);
         Lift lift = new Lift(hardwareMap);
 
-        // vision here that outputs position
-        int visionOutputPosition = 1;
+
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
                 .lineToYSplineHeading(33, Math.toRadians(0))
@@ -154,30 +153,15 @@ public class BlueSideTestAuto extends LinearOpMode {
                 .build();
 
         // actions that need to happen on init; for instance, a claw tightening.
-        Actions.runBlocking(claw.closeClaw());
+        Actions.runBlocking(claw.openClaw());
 
 
-        while (!isStopRequested() && !opModeIsActive()) {
-            int position = visionOutputPosition;
-            telemetry.addData("Position during Init", position);
-            telemetry.update();
-        }
 
-        int startPosition = visionOutputPosition;
-        telemetry.addData("Starting Position", startPosition);
-        telemetry.update();
-        waitForStart();
 
         if (isStopRequested()) return;
 
         Action trajectoryActionChosen;
-        if (startPosition == 1) {
-            trajectoryActionChosen = tab1.build();
-        } else if (startPosition == 2) {
-            trajectoryActionChosen = tab2.build();
-        } else {
-            trajectoryActionChosen = tab3.build();
-        }
+        trajectoryActionChosen=tab3.build();
 
         Actions.runBlocking(
                 new SequentialAction(
