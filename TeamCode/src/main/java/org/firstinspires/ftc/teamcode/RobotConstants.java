@@ -13,4 +13,5 @@ public class RobotConstants {
     public static String SC2 = "Scissor2";
     public static String wrist1 = "wrist1";
     public static String wrist2 = "wrist2";
+    public static String writs3 = "writst3";
 }

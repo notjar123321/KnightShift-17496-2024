@@ -19,10 +19,6 @@ public class Arm {
     private ElapsedTime timer;
     private Telemetry telemetry;
 
-    public final static double Kp = 0.05; // Proportional gain (adjust with testing)
-    public final static double Ki = 0.05; // Integral gain (adjust with testing)
-    public final static double Kd = 0.05; // Derivative gain (adjust with testing)
-
     public static int target_position = 0; // Target position for the arm
     private double integralSum = 0; // Integral for PID control
     private double lastError = 0; // Last error value for PID
@@ -79,8 +75,8 @@ public class Arm {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        motor1.setPower(0.4); // Adjust power as needed
-        motor2.setPower(0.4);
+        motor1.setPower(.2); // Adjust power as needed
+        motor2.setPower(.2);
     }
 
 

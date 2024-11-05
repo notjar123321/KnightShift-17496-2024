@@ -5,6 +5,7 @@
         import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
         import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
         import com.qualcomm.robotcore.hardware.DcMotor;
+        import com.qualcomm.robotcore.hardware.DcMotorSimple;
         import com.qualcomm.robotcore.hardware.Servo;
         import com.qualcomm.robotcore.util.ElapsedTime;
         import com.qualcomm.robotcore.util.Range;
@@ -23,6 +24,7 @@
             private DcMotor SC2 = null;
             private Servo wrist1 = null; // First wrist servo
             private Servo wrist2 = null;
+            private DcMotorSimple wrist3 = null;
 
 
 
@@ -48,6 +50,7 @@
 
             //wrist position
             public double wristPosition = 0;
+            public double clawPosition = 0;
 
             //Sensitivity
             private double sens = .7;
@@ -69,12 +72,12 @@
                 FrontRightMotor = hardwareMap.get(DcMotor.class, "FRM");
                 BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
                 armMotor1 = hardwareMap.get(DcMotor.class, "CLAW1"); // First arm motor
-                armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2");
+                armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2"); //second arm motor
                 SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
                 SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
                 wrist1= hardwareMap.get(Servo.class, "wrist1");
                 wrist2= hardwareMap.get(Servo.class, "wrist2");
-
+                wrist3= hardwareMap.get(DcMotorSimple.class, "wrist3");
 
 
                 // Set motor directions
@@ -84,8 +87,8 @@
                 BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
                 armMotor1.setDirection(DcMotor.Direction.FORWARD);
                 armMotor2.setDirection(DcMotor.Direction.REVERSE);
-                wrist1.setDirection(Servo.Direction.FORWARD);
-                wrist1.setDirection(Servo.Direction.FORWARD);
+                wrist1.setDirection(Servo.Direction.REVERSE);
+                wrist2.setDirection(Servo.Direction.FORWARD);
                 int groundPosition = 0;
                 int midPosition = 580;
                 int highPosition = 1000;
@@ -105,9 +108,13 @@
                 waitForStart();
                 runtime.reset();
                 wristPosition=(wrist1.getPosition()+wrist2.getPosition())/2;
+
+
                 // Run until the end of the match
                 while (opModeIsActive()) {
                     // Drive control variables
+
+                    arm.update();
                     if (gamepad1.a) {
 
                         armControlMode = !armControlMode; // Toggle control mode
@@ -120,8 +127,8 @@
                             SC2.setTargetPosition(upPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.2); // Adjust power as necessary
-                            SC2.setPower(.2); // Adjust power as necessary
+                            SC1.setPower(.5); // Adjust power as necessary
+                            SC2.setPower(.5); // Adjust power as necessary
                             isSCup=true;
 
                         } else {
@@ -130,16 +137,15 @@
                             SC2.setTargetPosition(downPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.2); // Adjust power as necessary
-                            SC2.setPower(.2); // Adjust power as necessary
+                            SC1.setPower(.5); // Adjust power as necessary
+                            SC2.setPower(.5); // Adjust power as necessary
                             isSCup=false;
                         }
 
-                        // Add a short delay to prevent multiple toggles from one press
-                        sleep(200);
                     }
 
                     if(!armControlMode){
+
                         double leftPower;
                         double rightPower;
                         // POV Mode control
@@ -185,14 +191,16 @@
 
                     }
                     if(armControlMode){
+                        double wristPower =gamepad1.right_stick_x+.5;
+                        wrist3.setPower(wristPower); // Set motor power based on joystick input
                         if (gamepad1.dpad_down) {
-                            arm.moveElbow(-3);
+                            arm.moveElbow(-5);
                         } else if (gamepad1.dpad_left) {
                             arm.moveElbow(arm_middle);
                         } else if (gamepad1.dpad_right) {
                                 arm.moveElbow(arm_bottom);
                         } else if (gamepad1.dpad_up) {
-                            arm.moveElbow(3);
+                            arm.moveElbow(5);
                         }
                         if (gamepad1.right_bumper) {
                             // Move wrist up (adjust the position as needed
@@ -200,15 +208,18 @@
                                 wristPosition+=.05;
                                 wrist1.setPosition(wristPosition);
                                 wrist2.setPosition(wristPosition);
-                                sleep(30);
+                                sleep(3);
                         } else if (gamepad1.left_bumper) {
                             // Move wrist down (adjust the position as needed)
                             wristPosition=wrist1.getPosition();
                             wristPosition-=.05;
                             wrist1.setPosition(wristPosition);
                             wrist2.setPosition(wristPosition);
-                            sleep(30);
+                            sleep(3);
                         }
+
+                        // Add a short delay to prevent multiple toggles from one press
+                        sleep(50);
                         telemetry.addData("Status", "Run Time: " + runtime.toString());
                         telemetry.addData("Distance Travelled (in)", distanceTravelled);
                         telemetry.addData("Current Position (X,Y)", String.format("X: %.2f, Y: %.2f", posX, posY));
