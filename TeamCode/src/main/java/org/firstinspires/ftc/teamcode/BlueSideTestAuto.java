@@ -31,7 +31,7 @@ public class BlueSideTestAuto extends LinearOpMode {
         private DcMotorEx lift;
 
         public Lift(HardwareMap hardwareMap) {
-            lift = hardwareMap.get(DcMotorEx.class, "claw1");
+            lift = hardwareMap.get(DcMotorEx.class, "CLAW1");
             lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             lift.setDirection(DcMotorSimple.Direction.FORWARD);
         }
@@ -89,7 +89,7 @@ public class BlueSideTestAuto extends LinearOpMode {
         private Servo claw;
 
         public Claw(HardwareMap hardwareMap) {
-            claw = hardwareMap.get(Servo.class, "claw2");
+            claw = hardwareMap.get(Servo.class, "CLAW2");
         }
 
         public class CloseClaw implements Action {

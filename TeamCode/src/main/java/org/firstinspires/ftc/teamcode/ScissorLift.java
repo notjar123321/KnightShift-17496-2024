@@ -19,8 +19,8 @@ public class ScissorLift {
 
 
     public ScissorLift(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
-        motorSC1 = hardwareMap.get(DcMotor.class, "SC1");
-        motorSC2 = hardwareMap.get(DcMotor.class, "SC2");
+        motorSC1 = hardwareMap.get(DcMotor.class, "Scissor1");
+        motorSC2 = hardwareMap.get(DcMotor.class, "Scissor2");
         timer = elapsedTime;
         telemetry = telemetryIn;
 

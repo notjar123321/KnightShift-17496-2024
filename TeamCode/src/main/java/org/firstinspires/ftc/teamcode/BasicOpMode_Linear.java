@@ -43,7 +43,7 @@
 
 
             //Scissor Lift positions
-            public final int upPosition = -4000;
+            public final int upPosition = 4000;
             public final int downPosition = 0;
 
             //wrist position
@@ -116,16 +116,18 @@
                             SC2.setTargetPosition(upPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.5); // Adjust power as necessary
-                            SC2.setPower(.5); // Adjust power as necessary
+                            SC1.setPower(.3); // Adjust power as necessary
+                            SC2.setPower(.3); // Adjust power as necessary
+                            isSCup=true;
                         } else {
                             // Move scissor lifts to the down position
                             SC1.setTargetPosition(downPosition);
                             SC2.setTargetPosition(downPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.5); // Adjust power as necessary
-                            SC2.setPower(.5); // Adjust power as necessary
+                            SC1.setPower(.3); // Adjust power as necessary
+                            SC2.setPower(.3); // Adjust power as necessary
+                            isSCup=false;
                         }
 
                         // Add a short delay to prevent multiple toggles from one press
