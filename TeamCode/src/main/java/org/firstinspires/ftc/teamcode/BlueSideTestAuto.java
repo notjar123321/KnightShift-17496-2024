@@ -25,7 +25,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import java.lang.Math;
 
 @Config
-@Autonomous(name = "BLUE_TEST_AUTO_PIXEL", group = "Autonomous")
+@Autonomous(name = "Please do something", group = "Autonomous")
 public class BlueSideTestAuto extends LinearOpMode {
     public class Lift {
         private DcMotorEx lift;
@@ -48,7 +48,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
                 double pos = lift.getCurrentPosition();
                 packet.put("liftPos", pos);
-                if (pos < 3000.0) {
+                if (pos <= -4000.0) {
                     return true;
                 } else {
                     lift.setPower(0);
@@ -72,7 +72,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
                 double pos = lift.getCurrentPosition();
                 packet.put("liftPos", pos);
-                if (pos > 100.0) {
+                if (pos <= 100.0) {
                     return true;
                 } else {
                     lift.setPower(0);
