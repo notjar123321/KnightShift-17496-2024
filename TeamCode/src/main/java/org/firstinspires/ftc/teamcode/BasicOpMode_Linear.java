@@ -43,7 +43,7 @@
 
 
             //Scissor Lift positions
-            public final int upPosition = 4000;
+            public final int upPosition = 3600;
             public final int downPosition = 0;
 
             //wrist position
@@ -72,6 +72,8 @@
                 armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2");
                 SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
                 SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
+                wrist1= hardwareMap.get(Servo.class, "wrist1");
+                wrist2= hardwareMap.get(Servo.class, "wrist2");
 
 
 
@@ -82,6 +84,8 @@
                 BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
                 armMotor1.setDirection(DcMotor.Direction.FORWARD);
                 armMotor2.setDirection(DcMotor.Direction.REVERSE);
+                wrist1.setDirection(Servo.Direction.FORWARD);
+                wrist1.setDirection(Servo.Direction.FORWARD);
                 int groundPosition = 0;
                 int midPosition = 580;
                 int highPosition = 1000;
@@ -100,7 +104,7 @@
                 // Wait for the game to start
                 waitForStart();
                 runtime.reset();
-
+                wristPosition=(wrist1.getPosition()+wrist2.getPosition())/2;
                 // Run until the end of the match
                 while (opModeIsActive()) {
                     // Drive control variables
@@ -116,17 +120,18 @@
                             SC2.setTargetPosition(upPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.3); // Adjust power as necessary
-                            SC2.setPower(.3); // Adjust power as necessary
+                            SC1.setPower(.2); // Adjust power as necessary
+                            SC2.setPower(.2); // Adjust power as necessary
                             isSCup=true;
+
                         } else {
                             // Move scissor lifts to the down position
                             SC1.setTargetPosition(downPosition);
                             SC2.setTargetPosition(downPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.3); // Adjust power as necessary
-                            SC2.setPower(.3); // Adjust power as necessary
+                            SC1.setPower(.2); // Adjust power as necessary
+                            SC2.setPower(.2); // Adjust power as necessary
                             isSCup=false;
                         }
 
@@ -171,6 +176,9 @@
                         telemetry.addData("Target Position", Arm.target_position);
                         telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
                         telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
+                        telemetry.addData("Wrist1 Position", wrist1.getPosition());
+                        telemetry.addData("Wrist2 Position", wrist2.getPosition());
+
                         telemetry.update();
                         arm.update();
 
@@ -187,16 +195,32 @@
                             arm.moveElbow(3);
                         }
                         if (gamepad1.right_bumper) {
-                            // Move wrist up (adjust the position as needed)
-                            wristPosition+=.2;
-                            wrist1.setPosition(wristPosition); // Full position for servo 1
-                            wrist2.setPosition(wristPosition); // Full position for servo 2
+                            // Move wrist up (adjust the position as needed
+                                wristPosition=wrist1.getPosition();
+                                wristPosition+=.05;
+                                wrist1.setPosition(wristPosition);
+                                wrist2.setPosition(wristPosition);
+                                sleep(30);
                         } else if (gamepad1.left_bumper) {
                             // Move wrist down (adjust the position as needed)
-                            wristPosition-=.2;
-                            wrist1.setPosition(wristPosition); // Home position for servo 1
-                            wrist2.setPosition(wristPosition); // Home position for servo 2
+                            wristPosition=wrist1.getPosition();
+                            wristPosition-=.05;
+                            wrist1.setPosition(wristPosition);
+                            wrist2.setPosition(wristPosition);
+                            sleep(30);
                         }
+                        telemetry.addData("Status", "Run Time: " + runtime.toString());
+                        telemetry.addData("Distance Travelled (in)", distanceTravelled);
+                        telemetry.addData("Current Position (X,Y)", String.format("X: %.2f, Y: %.2f", posX, posY));
+                        telemetry.addData("Orientation", String.format("Angle: %.2f", angle));
+                        telemetry.addData("Arm Position Motor1", armMotor1.getCurrentPosition());
+                        telemetry.addData("Arm Position Motor2", armMotor2.getCurrentPosition());
+                        telemetry.addData("Target Position", Arm.target_position);
+                        telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
+                        telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
+                        telemetry.addData("Wrist1 Position", wrist1.getPosition());
+                        telemetry.addData("Wrist2 Position", wrist2.getPosition());
+
                         telemetry.update();
                         arm.update();
 
@@ -221,6 +245,7 @@
                 armMotor2.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 SC1.setMode(DcMotor.RunMode.RESET_ENCODERS);
                 SC2.setMode(DcMotor.RunMode.RESET_ENCODERS);
+
 
 
                 sleep(100); // Allow time for the reset to take effect
