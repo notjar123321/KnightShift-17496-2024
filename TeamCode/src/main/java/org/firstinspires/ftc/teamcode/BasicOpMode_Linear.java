@@ -47,6 +47,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
     private double sens = .7;
 
     private int currentPos;
+    private int scissorLiftPosition;
 
     private volatile boolean odometryRunning = true;
     private boolean armControlMode = false;
@@ -107,12 +108,33 @@ public class BasicOpMode_Linear extends LinearOpMode {
             if (gamepad1.a) {
                 armControlMode = !armControlMode; // Toggle control mode
                 sleep(200); // Debounce delay
+                telemetry.addLine("arm is on");
             }
             if (gamepad1.x) {
                 scissorMode = !scissorMode;  // Toggle the scissor mode
                 sleep(200);  // Add a small debounce delay
+                telemetry.addLine("scissor is on");
             }
+            if(scissorMode)
+            {
 
+                if (gamepad1.left_stick_y != 0) {
+                    scissorLiftPosition += (int)(gamepad1.left_stick_y * 50);  // Adjust step size as needed
+                } else if (gamepad1.right_stick_y != 0) {
+                    scissorLiftPosition += (int)(gamepad1.right_stick_y * 50);  // Adjust step size as needed
+                }
+
+                // Ensure the scissor lift position stays within the bounds
+                scissorLiftPosition = Math.max(0, Math.min(scissorLiftPosition, 3100));
+
+                // Move scissor lift motors to the desired position
+                SC1.setTargetPosition(scissorLiftPosition);
+                SC2.setTargetPosition(scissorLiftPosition);
+                SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                SC1.setPower(0.8);  // Adjust power as necessary for smooth operation
+                SC2.setPower(0.8);
+            }
             if (!armControlMode) {
                 double leftPower;
                 double rightPower;
@@ -160,19 +182,19 @@ public class BasicOpMode_Linear extends LinearOpMode {
 
                 if (gamepad1.dpad_down) {
                     arm.moveElbow(-5);
-                    arm.update();
+
                     sleep(10);
                 } else if (gamepad1.dpad_left) {
                     arm.moveElbowSmoothly(midPosition);
-                    arm.update();
+
                     sleep(10);
                 } else if (gamepad1.dpad_right) {
                     arm.moveElbowSmoothly(highPosition);
-                    arm.update();
+
                     sleep(10);
                 } else if (gamepad1.dpad_up) {
                     arm.moveElbow(5);
-                    arm.update();
+
                     sleep(10);
                 }
 

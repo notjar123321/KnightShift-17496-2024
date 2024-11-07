@@ -89,7 +89,6 @@ public class Arm {
     }
 
     public void moveElbowSmoothly(int targetPosition) {
-        update();
         int currentPos = (motor1.getCurrentPosition()+ motor2.getCurrentPosition())/2;
         int error = targetPosition - currentPos;
 
