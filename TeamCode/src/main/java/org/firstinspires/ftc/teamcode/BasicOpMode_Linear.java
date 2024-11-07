@@ -32,6 +32,7 @@
             private final double wheelDiameter = 4.0; // Wheel diameter in inches
             private final double encoderCountsPerRevolution = 1120; // REV 20 motor encoder counts
             private double distanceTravelled = 0.0; // in inches
+            private double wristPower = 0.0;
 
             // Current position variables
             private double posX = 0.0; // X position in inches
@@ -127,8 +128,8 @@
                             SC2.setTargetPosition(upPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.5); // Adjust power as necessary
-                            SC2.setPower(.5); // Adjust power as necessary
+                            SC1.setPower(.7); // Adjust power as necessary
+                            SC2.setPower(.7); // Adjust power as necessary
                             isSCup=true;
 
                         } else {
@@ -137,8 +138,8 @@
                             SC2.setTargetPosition(downPosition);
                             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                            SC1.setPower(.5); // Adjust power as necessary
-                            SC2.setPower(.5); // Adjust power as necessary
+                            SC1.setPower(.7); // Adjust power as necessary
+                            SC2.setPower(.7); // Adjust power as necessary
                             isSCup=false;
                         }
 
@@ -191,7 +192,8 @@
 
                     }
                     if(armControlMode){
-                        double wristPower =gamepad1.right_stick_x+.5;
+                        arm.update();
+                        wristPower = Math.min(Math.max(wristPower + gamepad1.right_stick_x, -1.0), 1.0);
                         wrist3.setPower(wristPower); // Set motor power based on joystick input
                         if (gamepad1.dpad_down) {
                             arm.moveElbow(-5);
@@ -231,6 +233,7 @@
                         telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
                         telemetry.addData("Wrist1 Position", wrist1.getPosition());
                         telemetry.addData("Wrist2 Position", wrist2.getPosition());
+                        telemetry.addData("Wrist3 Power", wristPower);
 
                         telemetry.update();
                         arm.update();
@@ -245,6 +248,7 @@
 
                 // Stop the odometry thread when OpMode ends
                 odometryRunning = false;
+                arm.update();
             }
 
             private void resetEncoders() {
