@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 
+import static android.os.SystemClock.sleep;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
 import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
 import com.acmerobotics.dashboard.config.Config;
@@ -83,9 +84,41 @@ public class Arm {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        motor1.setPower(.2); // Adjust power as needed
-        motor2.setPower(.2);
+        motor1.setPower(.1); // Adjust power as needed
+        motor2.setPower(.1);
     }
+
+    public void moveElbowSmoothly(int targetPosition) {
+        update();
+        int currentPos = (motor1.getCurrentPosition()+ motor2.getCurrentPosition())/2;
+        int error = targetPosition - currentPos;
+
+        // Calculate the number of steps for the movement
+        int steps = 20;  // You can adjust this value based on your needs
+        int stepSize = error / steps;  // Size of each step
+        stepSize = (stepSize == 0) ? (error > 0 ? 1 : -1) : stepSize; // Prevent step size of 0
+
+        // Gradually move the arm in small steps towards the target position
+        for (int i = 0; i < steps; i++) {
+            // Calculate new target position for each step
+            sleep(5);
+            int partialTarget = currentPos + stepSize;  // Incremental target position
+
+            // Update the arm position
+            motor1.setTargetPosition(partialTarget);
+            motor2.setTargetPosition(partialTarget);
+
+            // Move arm to the new target position with some small power
+            motor1.setPower(0.8);  // Set a moderate speed for smooth movement
+            motor2.setPower(0.8);
+
+            // Allow time for the arm to reach the current target position
+
+            }
+
+            // Optionally, reduce speed as we get closer to the target
+
+        }
 
     public void setTargetVelocity(double velocity) {
         target_velocity = velocity; // Set target velocity in ticks per second
