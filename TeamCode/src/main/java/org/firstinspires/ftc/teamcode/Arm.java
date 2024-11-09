@@ -87,6 +87,17 @@ public class Arm {
         motor1.setPower(.1); // Adjust power as needed
         motor2.setPower(.1);
     }
+    public void moveElbowTo(int ticks) {
+        target_position = ticks;
+        motor1.setTargetPosition(target_position);
+        motor2.setTargetPosition(target_position);
+
+        motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+        motor1.setPower(.3); // Adjust power as needed
+        motor2.setPower(.3);
+    }
 
     public void moveElbowSmoothly(int targetPosition) {
         int currentPos = (motor1.getCurrentPosition()+ motor2.getCurrentPosition())/2;

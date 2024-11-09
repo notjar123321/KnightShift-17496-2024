@@ -1,145 +1,171 @@
+package org.firstinspires.ftc.teamcode;
 
-        package org.firstinspires.ftc.teamcode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
-        import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-        import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-        import com.qualcomm.robotcore.hardware.DcMotor;
-        import com.qualcomm.robotcore.hardware.DcMotorSimple;
-        import com.qualcomm.robotcore.hardware.Servo;
-        import com.qualcomm.robotcore.util.ElapsedTime;
+@TeleOp(name = "TripleMode LinearOp", group = "Linear Opmode")
+public class BasicOpMode_Linear2 extends LinearOpMode {
 
-        @TeleOp(name="ScissorLiftRepairMode", group="Linear OpMode")
-        public class BasicOpMode_Linear2 extends LinearOpMode {
+    private ElapsedTime runtime = new ElapsedTime();
 
-            private ElapsedTime runtime = new ElapsedTime();
-            private DcMotor FrontLeftMotor = null;
-            private DcMotor BackLeftMotor = null;
-            private DcMotor FrontRightMotor = null;
-            private DcMotor BackRightMotor = null;
-            private DcMotor armMotor1 = null; // First motor for arm rotation
-            private DcMotor armMotor2 = null;
-            private DcMotor SC1 = null; // First motor for arm rotation
-            private DcMotor SC2 = null;
-            private Servo wrist1 = null; // First wrist servo
-            private Servo wrist2 = null;
-            private DcMotorSimple wrist3 = null;
+    private DcMotor FrontLeftMotor;
+    private DcMotor BackLeftMotor;
+    private DcMotor FrontRightMotor;
+    private DcMotor BackRightMotor;
+    private DcMotor armMotor1 = null; // First motor for arm rotation
+    private DcMotor armMotor2 = null;
+    private DcMotor SC1;
+    private DcMotor SC2;
+    private Servo wrist1 = null; // First wrist servo
+    private Servo wrist2 = null;
+    private DcMotorSimple wrist3 = null;
+    private Arm2 arm;
 
+    private double sens = 0.7;
+    private int scissorLiftPosition = 0;
+    private int mode = 0; // 0: Drive, 1: Arm Control, 2: Scissor Lift
+    public double wristPosition = 0;
 
+    @Override
+    public void runOpMode() {
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
 
-            // Odometer variables
-            private final double wheelDiameter = 4.0; // Wheel diameter in inches
-            private final double encoderCountsPerRevolution = 1120; // REV 20 motor encoder counts
-            private double distanceTravelled = 0.0; // in inches
-            private double wristPower = 0.0;
+        initializeHardware();
 
-            // Current position variables
-            private double posX = 0.0; // X position in inches
-            private double posY = 0.0; // Y position in inches
-            private double angle = 0.0; // Robot's orientation in degrees
-
-            //arm positions
-            private final int arm_down = 0; //for motor 2 ecoder
-            private final int arm_middle = 578;
-            private final int arm_bottom = 1015;
-
-
-            //Scissor Lift positions
-            public final int upPosition = 3600;
-            public final int downPosition = 0;
-
-            //wrist position
-            public double wristPosition = 0;
-            public double clawPosition = 0;
-
-            //Sensitivity
-            private double sens = .7;
-
-            private int currentPos;
-
-            private volatile boolean odometryRunning = true;
-            private boolean armControlMode = false;
-            private boolean isSCup = false;
-
-            @Override
-            public void runOpMode() {
-                telemetry.addData("Status", "Initialized");
+        waitForStart();
+        runtime.reset();
+        wristPosition = (wrist1.getPosition() + wrist2.getPosition()) / 2;
+        while (opModeIsActive()) {
+            // Toggle between modes with gamepad1.y
+            if (gamepad1.y) {
+                mode = (mode + 1) % 3; // Cycle through 0, 1, and 2
+                sleep(200); // Debounce delay
+                telemetry.addData("Mode", mode == 0 ? "Drive" : mode == 1 ? "Arm Control" : "Scissor Lift");
                 telemetry.update();
-
-                // Initialize the hardware variables
-                FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
-                BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");
-                FrontRightMotor = hardwareMap.get(DcMotor.class, "FRM");
-                BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
-                armMotor1 = hardwareMap.get(DcMotor.class, "CLAW1"); // First arm motor
-                armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2"); //second arm motor
-                SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
-                SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
-                wrist1= hardwareMap.get(Servo.class, "wrist1");
-                wrist2= hardwareMap.get(Servo.class, "wrist2");
-                wrist3= hardwareMap.get(DcMotorSimple.class, "wrist3");
-
-
-                // Set motor directions
-                FrontRightMotor.setDirection(DcMotor.Direction.FORWARD);
-                BackRightMotor.setDirection(DcMotor.Direction.FORWARD);
-                FrontLeftMotor.setDirection(DcMotor.Direction.REVERSE);
-                BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
-                armMotor1.setDirection(DcMotor.Direction.FORWARD);
-                armMotor2.setDirection(DcMotor.Direction.REVERSE);
-                wrist1.setDirection(Servo.Direction.REVERSE);
-                wrist2.setDirection(Servo.Direction.FORWARD);
-                int groundPosition = 0;
-                int midPosition = 580;
-                int highPosition = 1000;
-
-                // Default target position
-
-
-
-                Arm arm = new Arm(hardwareMap, runtime, telemetry);
-                ScissorLift scissor1 = new ScissorLift(hardwareMap, runtime, telemetry);
-                ScissorLift scissor2 = new ScissorLift(hardwareMap, runtime, telemetry);
-                // Start the odometry thread
-
-
-                // Wait for the game to start
-                waitForStart();
-                runtime.reset();
-
-
-
-                // Run until the end of the match
-                while (opModeIsActive()) {
-                    // Drive control variables
-                    SC1.setPower(gamepad1.left_stick_y);
-                    SC2.setPower(gamepad1.right_stick_y);
-
-
-                    }
-
-
-
-
-                }
-
-                // Stop the odometry thread when OpMode ends
-
-
             }
 
+            switch (mode) {
+                case 0: // Drive mode
+                    driveMode();
+                    break;
+                case 1: // Arm Control mode
+                    armControlMode();
+                    break;
+                case 2: // Scissor Lift mode
+                    scissorLiftMode();
+                    break;
+            }
+
+            telemetry.update();
+        }
+    }
+
+    private void initializeHardware() {
+        FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
+        BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");
+        FrontRightMotor = hardwareMap.get(DcMotor.class, "FRM");
+        BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
+        armMotor1 = hardwareMap.get(DcMotor.class, "CLAW1"); // First arm motor
+        armMotor2 = hardwareMap.get(DcMotor.class, "CLAW2"); // second arm motor
+        SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
+        SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
+        wrist1 = hardwareMap.get(Servo.class, "wrist1");
+        wrist2 = hardwareMap.get(Servo.class, "wrist2");
+        wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
+
+        // Initialize motors
+        FrontRightMotor.setDirection(DcMotor.Direction.FORWARD);
+        BackRightMotor.setDirection(DcMotor.Direction.FORWARD);
+        FrontLeftMotor.setDirection(DcMotor.Direction.REVERSE);
+        BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
+        armMotor1.setDirection(DcMotor.Direction.FORWARD);
+        armMotor2.setDirection(DcMotor.Direction.REVERSE);
+        wrist1.setDirection(Servo.Direction.REVERSE);
+        wrist2.setDirection(Servo.Direction.FORWARD);
+
+        // Set up scissor lift motors with encoders
+        SC1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        SC2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        SC1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        SC2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        arm = new Arm2(hardwareMap, runtime, telemetry);
+    }
+
+    private void driveMode() {
+        double y = -gamepad1.left_stick_y;
+        double x = gamepad1.left_stick_x;
+        double rx = gamepad1.right_stick_x;
+
+        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+        double frontLeftPower = (y + x + rx) / denominator;
+        double backLeftPower = (y - x + rx) / denominator;
+        double frontRightPower = (y - x - rx) / denominator;
+        double backRightPower = (y + x - rx) / denominator;
+
+        FrontLeftMotor.setPower(frontLeftPower * sens);
+        BackLeftMotor.setPower(backLeftPower * sens);
+        FrontRightMotor.setPower(frontRightPower * sens);
+        BackRightMotor.setPower(backRightPower * sens);
+    }
+
+    private void armControlMode() {
+        arm.update();
+        // Example arm control code
+        if (gamepad1.dpad_down) {
+            arm.moveElbow(-5);
+            sleep(10);
+        }
+        if (gamepad1.dpad_up) {
+            arm.moveElbow(5);
+            sleep(10);
+        }
+        if (gamepad1.dpad_left) {
+            arm.moveElbowTo(570);
+            sleep(10);
+        }
+        if (gamepad1.dpad_right) {
+            arm.moveElbowTo(850);
+            sleep(10);
+        }
+        if (gamepad1.right_bumper) {
+            // Move wrist up (adjust the position as needed)
+            wristPosition = wrist1.getPosition();
+            wristPosition += .05;
+            wrist1.setPosition(wristPosition);
+            wrist2.setPosition(wristPosition);
+            sleep(10);
+        } else if (gamepad1.left_bumper) {
+            // Move wrist down (adjust the position as needed)
+            wristPosition = wrist1.getPosition();
+            wristPosition -= .05;
+            wrist1.setPosition(wristPosition);
+            wrist2.setPosition(wristPosition);
+            sleep(10);
+        }
 
 
+    }
 
+    private void scissorLiftMode() {
+        if (gamepad1.left_stick_y != 0) {
+            scissorLiftPosition += (int)(gamepad1.left_stick_y * 50);
+            sleep(10);
+        }
+        scissorLiftPosition = Math.max(0, Math.min(scissorLiftPosition, 3100));
 
-        /*
-         * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
-         * the autonomous or the teleop period of an FTC match. The names of OpModes appear on the menu
-         * of the FTC Driver Station. When a selection is made from the menu, the corresponding OpMode
-         * class is instantiated on the Robot Controller and executed.
-         *
-         * This particular OpMode just executes a basic Tank Drive Teleop for a two wheeled robot
-         * It includes all the skeletal structure that all linear OpModes contain.
-         *
-         * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
-         * Remove or comment out the @Disabled line to add this OpMode to the Driver Station OpMode list
-         */
+        SC1.setTargetPosition(scissorLiftPosition);
+        SC2.setTargetPosition(scissorLiftPosition);
+        SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        SC1.setPower(0.9);
+        SC2.setPower(0.9);
+    }
+}

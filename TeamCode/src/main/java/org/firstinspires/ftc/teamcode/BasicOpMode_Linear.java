@@ -182,14 +182,13 @@ public class BasicOpMode_Linear extends LinearOpMode {
 
                 if (gamepad1.dpad_down) {
                     arm.moveElbow(-5);
-
                     sleep(10);
                 } else if (gamepad1.dpad_left) {
-                    arm.moveElbowSmoothly(midPosition);
+                    arm.moveElbowTo(midPosition);
 
                     sleep(10);
                 } else if (gamepad1.dpad_right) {
-                    arm.moveElbowSmoothly(highPosition);
+                    arm.moveElbowTo(highPosition);
 
                     sleep(10);
                 } else if (gamepad1.dpad_up) {
