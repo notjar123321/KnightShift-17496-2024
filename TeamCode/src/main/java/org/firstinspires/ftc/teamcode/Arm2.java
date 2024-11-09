@@ -22,7 +22,7 @@ public class Arm2 {
     private double integralSum = 0;
     private double lastError = 0;
     private double lastTime = 0;
-    private double gravityCompensation = 0.005; // Tune as needed
+    private double gravityCompensation = 0.05; // Tune as needed
 
     // PID Constants
     private double kP = 0.1;
