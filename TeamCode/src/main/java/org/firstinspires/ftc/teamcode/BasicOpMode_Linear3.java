@@ -104,10 +104,14 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
         armMotor2.setDirection(DcMotor.Direction.REVERSE);
         wrist1.setDirection(Servo.Direction.REVERSE);
         wrist2.setDirection(Servo.Direction.FORWARD);
+        SC1.setDirection(DcMotor.Direction.FORWARD);
+        SC2.setDirection(DcMotor.Direction.REVERSE);
 
         // Set up scissor lift motors with encoders
         SC1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         SC2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        armMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         SC1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -180,8 +184,8 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
             SC2.setTargetPosition(scissorLiftPosition);
             SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            SC1.setPower(0.9);
-            SC2.setPower(0.9);
+            SC1.setPower(1);
+            SC2.setPower(1);
             sleep(10);
         }
 
@@ -204,7 +208,7 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
         SC2.setTargetPosition(scissorLiftPosition);
         SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        SC1.setPower(0.9);
-        SC2.setPower(0.9);
+        SC1.setPower(1);
+        SC2.setPower(1);
     }
 }

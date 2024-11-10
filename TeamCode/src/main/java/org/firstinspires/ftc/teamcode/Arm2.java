@@ -109,7 +109,7 @@ public class Arm2 {
         motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         double currentPower = 0.1; // Initial low power
-        double maxPower = 0.5; // Maximum allowable power
+        double maxPower = 0.7; // Maximum allowable power
 
         while (motor1.isBusy() && motor2.isBusy()) {
             int currentPos = (motor1.getCurrentPosition() + motor2.getCurrentPosition()) / 2;
