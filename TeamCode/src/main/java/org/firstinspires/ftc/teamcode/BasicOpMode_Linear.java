@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-@TeleOp(name="Basic: LinearOpMode", group="Linear OpMode")
+@TeleOp(name="no", group="Linear OpMode")
 public class BasicOpMode_Linear extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor FrontLeftMotor = null;
@@ -104,7 +104,7 @@ public class BasicOpMode_Linear extends LinearOpMode {
         while (opModeIsActive()) {
             // Drive control variables
             arm.update();
-
+            SC1.setPower(gamepad1.right_stick_y);
             if (gamepad1.a) {
                 armControlMode = !armControlMode; // Toggle control mode
                 sleep(200); // Debounce delay
