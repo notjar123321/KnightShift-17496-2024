@@ -7,8 +7,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@TeleOp(name = "DoubleMode FINAL LinearOp", group = "Linear Opmode")
-public class BasicOpMode_Linear3 extends LinearOpMode {
+@TeleOp(name = "Single Driver improved LinearOp", group = "Linear Opmode")
+public class BasicOpMode_Linear4 extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -30,6 +30,7 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
     private int mode = 0; // 0: Drive, 1: Arm Control, 2: Scissor Lift
     public double wristPosition = 0;
     private double wristPower = 0;
+    private boolean clawOpen = false;
 
     @Override
     public void runOpMode() {
@@ -48,6 +49,31 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
                 sleep(200); // Debounce delay
                 telemetry.addData("Mode", mode == 0 ? "Drive" : "Arm Control");
                 telemetry.update();
+            }
+            if (gamepad1.b && (clawOpen)) {
+                clawOpen=false;
+                wrist3.setPower(-.5); // Set motor power based on joystick input
+                sleep(40);
+            }
+            if (gamepad1.b && (!clawOpen)) {
+                clawOpen=true;
+                wrist3.setPower(.5); // Set motor power based on joystick input
+                sleep(40);
+            }
+            if (gamepad1.right_bumper) {
+                // Move wrist up (adjust the position as needed)
+                wristPosition = wrist1.getPosition();
+                wristPosition += .05;
+                wrist1.setPosition(wristPosition);
+                wrist2.setPosition(wristPosition);
+                sleep(50);
+            } else if (gamepad1.left_bumper) {
+                // Move wrist down (adjust the position as needed)
+                wristPosition = wrist1.getPosition();
+                wristPosition -= .05;
+                wrist1.setPosition(wristPosition);
+                wrist2.setPosition(wristPosition);
+                sleep(50);
             }
 
             switch (mode) {
@@ -139,7 +165,7 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
         if (gamepad1.dpad_up) {
             scissorLiftPosition += 100;
 
-            scissorLiftPosition = Math.max(0, Math.min(scissorLiftPosition, 3100));
+            scissorLiftPosition = Math.max(-3100, Math.min(scissorLiftPosition, 3100));
 
             SC1.setTargetPosition(scissorLiftPosition);
             SC2.setTargetPosition(scissorLiftPosition);
@@ -168,9 +194,6 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
 
     private void armControlMode() {
         arm.update();
-
-        wristPower = wristPower + gamepad1.right_stick_x;
-        wrist3.setPower(wristPower); // Set motor power based on joystick input
         // Example arm control code
         if (gamepad1.dpad_down) {
             arm.moveElbow(-5);
@@ -188,21 +211,8 @@ public class BasicOpMode_Linear3 extends LinearOpMode {
             arm.moveElbowTo(850);
             sleep(10);
         }
-        if (gamepad1.right_bumper) {
-            // Move wrist up (adjust the position as needed)
-            wristPosition = wrist1.getPosition();
-            wristPosition += .05;
-            wrist1.setPosition(wristPosition);
-            wrist2.setPosition(wristPosition);
-            sleep(50);
-        } else if (gamepad1.left_bumper) {
-            // Move wrist down (adjust the position as needed)
-            wristPosition = wrist1.getPosition();
-            wristPosition -= .05;
-            wrist1.setPosition(wristPosition);
-            wrist2.setPosition(wristPosition);
-            sleep(50);
-        }
+
+
         if (gamepad1.left_stick_y != 0) {
             scissorLiftPosition += (int)(gamepad1.left_stick_y * 50);
 
