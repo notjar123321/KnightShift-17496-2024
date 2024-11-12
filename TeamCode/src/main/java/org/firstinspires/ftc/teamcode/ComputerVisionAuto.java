@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
+import com.google.android.gms.common.api.Result;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -52,12 +53,9 @@ import java.nio.channels.FileChannel;
 import java.io.FileInputStream;
 import android.content.res.AssetFileDescriptor;
 
-
-
-
 @Config
-@Autonomous(name = "Bucket_Side", group = "Autonomous")
-public class BlueSideTestAuto extends LinearOpMode {
+@Autonomous(name = "Notworkingcameravision", group = "Autonomous")
+public class ComputerVisionAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
 
     public class Claw {
@@ -382,6 +380,10 @@ public class BlueSideTestAuto extends LinearOpMode {
         // Load the model in the constructor or initialization function
         public SampleDetection(AssetManager assetManager, String modelPath) {
             SampleDetection detection = new SampleDetection(assetManager, "model.tflite");
+            int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                    "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+            webcam = OpenCvCameraFactory.getInstance().createWebcam(
+                    hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
 
         }
         public TensorImage preprocessImage(Bitmap bitmap) {
@@ -396,7 +398,37 @@ public class BlueSideTestAuto extends LinearOpMode {
                     .build();
             return imageProcessor.process(tensorImage);
         }
+       /** public int detectSampleLocation(SampleDetection detection) {
+            // Capture an image from the webcam
+            Bitmap bitmap = captureImageFromCamera();
+            if (bitmap == null) {
+                telemetry.addData("Detection", "Failed to capture image");
+                telemetry.update();
+                return -1; // Error code for failed capture
+            }
 
+            // Preprocess the image
+            TensorImage inputImage = detection.preprocessImage(bitmap);
+
+            // Model input/output setup (assumes single output with 3 locations)
+            float[][] outputLocations = new float[1][3]; // Adjust based on model output
+
+            // Run the inference
+            detection.tflite.run(inputImage.getBuffer(), outputLocations);
+
+            // Process output to determine sample location
+            float left = outputLocations[0][0];
+            float center = outputLocations[0][1];
+            float right = outputLocations[0][2];
+
+            if (left > center && left > right) {
+                return 0; // Left position
+            } else if (center > left && center > right) {
+                return 1; // Center position
+            } else {
+                return 2; // Right position
+            }
+        }
 
         // Close the interpreter when done
         public void close() {
@@ -404,21 +436,8 @@ public class BlueSideTestAuto extends LinearOpMode {
                 tflite.close();
                 tflite = null;
             }
-        }
+        }**/
     }
-    public TensorImage preprocessImage(Bitmap bitmap) {
-        TensorImage tensorImage = new TensorImage(DataType.UINT8);
-
-        // Load image into TensorImage
-        tensorImage.load(bitmap);
-
-        // Resize to model input size, e.g., 300x300
-        ImageProcessor imageProcessor = new ImageProcessor.Builder()
-                .add(new ResizeOp(300, 300, ResizeOp.ResizeMethod.BILINEAR))
-                .build();
-        return imageProcessor.process(tensorImage);
-    }
-
 
 
 
@@ -430,16 +449,33 @@ public class BlueSideTestAuto extends LinearOpMode {
         Claw wrist3 = new Claw(hardwareMap);
         SCLift scLift = new SCLift(hardwareMap);
         Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-
+        SampleDetection detection = new SampleDetection(hardwareMap.appContext.getAssets(), "model.tflite");
 
 
         //Bucket bucket = new Bucket(hardwareMap);
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam = OpenCvCameraFactory.getInstance().createWebcam(
+                hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        try {
+            //tfLite = new Interpreter(loadModelFile());
+        } catch (Exception e) {
+            telemetry.addData("Error", "Failed to load model");
+            telemetry.update();
+            return;
+        }
 
 
 
+        while (opModeIsActive()) {
+            arm.update(); // consistently update PID control
+            telemetry.update(); // update telemetry in each loop cycle
+            //int sampleLocation = detectSampleLocation(detection);  // Detect sample position
 
 
-
+            telemetry.update();
+            sleep(10);
+        }
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
                 .strafeTo(new Vector2d(4, 4))
@@ -479,8 +515,9 @@ public class BlueSideTestAuto extends LinearOpMode {
         Actions.runBlocking(
                 new SequentialAction(
                         new ParallelAction(
-                        scLift.moveToPositionAction(3100),
-                        trajectoryActionChosen),
+                                scLift.moveToPositionAction(3100),
+                                trajectoryActionChosen
+                        ),
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),
                         tab2.build(),
@@ -491,3 +528,6 @@ public class BlueSideTestAuto extends LinearOpMode {
         );
     }
 }
+
+
+

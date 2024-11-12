@@ -118,14 +118,17 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             double y = -gamepad1.left_stick_y;
             double x = gamepad1.left_stick_x;
             double rx = gamepad1.right_stick_x;
-            double tempX = x * cosAngle + y * sinAngle;
-            double tempY = -x * sinAngle + y * cosAngle;
 
-            double denominator = Math.max(Math.abs(tempX) + Math.abs(tempY) + Math.abs(rx), 1);
-            double frontLeftPower = (tempY + tempX + rx) / denominator;
-            double backLeftPower = (tempY - tempX + rx) / denominator;
-            double frontRightPower = (tempY - tempX - rx) / denominator;
-            double backRightPower = (tempY + tempX - rx) / denominator;
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+            double frontLeftPower = (y + x + rx) / denominator;
+            double backLeftPower = (y - x + rx) / denominator;
+            double frontRightPower = (y - x - rx) / denominator;
+            double backRightPower = (y + x - rx) / denominator;
+
+            FrontLeftMotor.setPower(frontLeftPower * sens);
+            BackLeftMotor.setPower(backLeftPower * sens);
+            FrontRightMotor.setPower(frontRightPower * sens);
+            BackRightMotor.setPower(backRightPower * sens);
 
             FrontLeftMotor.setPower(frontLeftPower * sens);
             BackLeftMotor.setPower(backLeftPower * sens);
