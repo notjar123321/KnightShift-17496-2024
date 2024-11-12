@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -21,6 +22,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.opencv.core.Mat;
 
 @Config
 @Autonomous(name = "Bucket_Side", group = "Autonomous")
@@ -55,14 +57,15 @@ public class BlueSideTestAuto extends LinearOpMode {
                 return false;
             }
         }
-        public static Action openClaw() {
+        public Action openClaw() {
             return new OpenClaw();
         }
     }
     public class SCLift {
         private DcMotor SC1 = null;
         private DcMotor SC2 = null;
-        public SCLift() {
+        int TARGET_POSITION;
+        public SCLift(HardwareMap hardwareMap) {
             SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
             SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
             SC1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -70,6 +73,70 @@ public class BlueSideTestAuto extends LinearOpMode {
             SC2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             SC2.setDirection(DcMotorSimple.Direction.REVERSE);
         }
+        public void moveToPosition(int position) {
+            TARGET_POSITION=Range.clip(position, 0, 3100);
+            SC1.setTargetPosition(TARGET_POSITION);
+            SC2.setTargetPosition(TARGET_POSITION);
+
+            SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+            // Set power for lift movement
+            double liftPower = 1; // Adjust as necessary for your setup
+            SC1.setPower(liftPower);
+            SC2.setPower(liftPower);
+
+            // Wait until both motors reach the target
+            while (SC1.isBusy() && SC2.isBusy()) {
+                // Optionally add telemetry here for debugging
+            }
+
+            // Stop motors after reaching position
+            SC1.setPower(0);
+            SC2.setPower(0);
+
+            // Switch back to RUN_USING_ENCODER to maintain the position
+            SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+        public class MoveToPositionAction implements Action {
+            private int targetPosition;
+
+            public MoveToPositionAction(int position) {
+                this.targetPosition = Range.clip(position, 0, 3100);
+            }
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                SC1.setTargetPosition(targetPosition);
+                SC2.setTargetPosition(targetPosition);
+
+                SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                double liftPower = 1.0;
+                SC1.setPower(liftPower);
+                SC2.setPower(liftPower);
+
+                // Stop if both motors have reached the target
+                if (!SC1.isBusy() && !SC2.isBusy()) {
+                    SC1.setPower(0);
+                    SC2.setPower(0);
+
+                    SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    return true; // Action is complete
+                }
+
+                return false; // Action is still running
+            }
+        }
+
+        // Method to get a MoveToPositionAction with the specified target position
+        public Action moveToPositionAction(int position) {
+            return new MoveToPositionAction(position);
+        }
+
     }
     public class Arm2 {
         private DcMotor motor1;
@@ -225,50 +292,100 @@ public class BlueSideTestAuto extends LinearOpMode {
 
             // Final adjustment at lower power for precision
             motor1.setPower(0.5);
-
         }
+
 
         public void setTargetPosition(int position) {
             target_position = position;
         }
     }
+    public class Bucket {
+        private Servo bucketServo;      //may be DCmotorSimple
+        private static final double UP_POSITION = 1.0; // Max position for the servo (may have to flip depending on how built
+        private static final double DOWN_POSITION = 0.0;
+        public Bucket(HardwareMap hardwareMap) {
+            bucketServo = hardwareMap.get(Servo.class, "bucketServo");
+        }
+
+        public void tiltBucketToMax() {
+            bucketServo.setPosition(DOWN_POSITION);
+        }
+
+        // Action version for SequentialAction
+        public class TiltBucketToMaxAction implements Action {
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                bucketServo.setPosition(DOWN_POSITION);
+                return true; // Return true when the action is complete
+            }
+        }
+
+        public Action tiltBucketToMaxAction() {
+            return new TiltBucketToMaxAction();
+        }
+
+        // Regular method to untlit the bucket
+        public void UntiltBucket() {
+            bucketServo.setPosition(UP_POSITION);
+        }
+
+        // Action version for SequentialAction
+        public class UntiltBucketAction implements Action {
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                bucketServo.setPosition(UP_POSITION);
+                return true; // Return true when the action is complete
+            }
+        }
+
+        public Action unTiltBucketAction() {
+            return new UntiltBucketAction();
+        }
+
+    }
 
 
     @Override
     public void runOpMode() {
-        Pose2d initialPose = new Pose2d(0, 0, 0);
+        Pose2d initialPose = new Pose2d(24, 0, 0);
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
-        Claw wrist3 = new Claw("wrist3");
+        Claw wrist3 = new Claw(hardwareMap);
+        SCLift scLift = new SCLift(hardwareMap);
+        Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+        //Bucket bucket = new Bucket(hardwareMap);
 
 
-        // vision here that outputs position
+
+
+
 
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .lineToYSplineHeading(33, Math.toRadians(0))
-                .waitSeconds(2)
-                .setTangent(Math.toRadians(90))
-                .lineToY(48)
-                .setTangent(Math.toRadians(0))
-                .lineToX(32)
-                .strafeTo(new Vector2d(44.5, 30))
-                .turn(Math.toRadians(180))
-                .lineToX(47.5)
-                .waitSeconds(3);
-        TrajectoryActionBuilder tab2 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(-20, 2))
+                .strafeTo(new Vector2d(4, 4))
+                .turn(Math.toRadians(45+180));
+        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
+                .strafeTo(new Vector2d(10, 14))
+                .turn(Math.toRadians(45));
+        TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
+                .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
 
 
 
-        Action trajectoryActionCloseOut = tab2.fresh()
-                .strafeTo(new Vector2d(48, 0)) // go to park
+
+
+
+
+        Action trajectoryActionCloseOut = tab1.fresh()
+                .strafeTo(new Vector2d(48, 0))
                 .build();
 
 
+
+
         // actions that need to happen on init; for instance, a claw tightening.
-
-
+        wrist3.closeClaw();
+        //bucket.UntiltBucket();
 
         telemetry.update();
         waitForStart();
@@ -276,12 +393,18 @@ public class BlueSideTestAuto extends LinearOpMode {
         if (isStopRequested()) return;
 
         Action trajectoryActionChosen;
-        trajectoryActionChosen = tab2.build();
-
+        trajectoryActionChosen = tab1.build();
+        arm.update();
         Actions.runBlocking(
                 new SequentialAction(
-                        trajectoryActionChosen,
-                        wrist3.openClaw()
+                        new ParallelAction(
+                        scLift.moveToPositionAction(3100),
+                        trajectoryActionChosen),
+                        //bucket.tiltBucketToMaxAction(),
+                        //bucket.unTiltBucketAction(),
+                        tab2.build(),
+                        //put the arm in the right positon
+                        wrist3.closeClaw(),
                         trajectoryActionCloseOut
                 )
         );

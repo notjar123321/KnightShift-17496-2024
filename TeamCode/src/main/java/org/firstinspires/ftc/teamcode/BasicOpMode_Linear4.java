@@ -65,14 +65,14 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                 wristPosition = wrist1.getPosition();
                 wristPosition += .05;
                 wrist1.setPosition(wristPosition);
-                wrist2.setPosition(wristPosition);
+                wrist2.setPosition(1-wristPosition);
                 sleep(50);
             } else if (gamepad1.left_bumper) {
                 // Move wrist down (adjust the position as needed)
                 wristPosition = wrist1.getPosition();
                 wristPosition -= .05;
                 wrist1.setPosition(wristPosition);
-                wrist2.setPosition(wristPosition);
+                wrist2.setPosition(1-wristPosition);
                 sleep(50);
             }
 
