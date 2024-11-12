@@ -22,11 +22,23 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.opencv.core.Mat;
+import org.tensorflow.lite.Interpreter;
+import org.openftc.easyopencv.OpenCvCamera;
+import org.openftc.easyopencv.OpenCvCameraFactory;
+import org.openftc.easyopencv.OpenCvCameraRotation;
+import org.openftc.easyopencv.OpenCvWebcam;
+import java.io.FileInputStream;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+
 
 @Config
 @Autonomous(name = "Bucket_Side", group = "Autonomous")
 public class BlueSideTestAuto extends LinearOpMode {
+    private OpenCvWebcam webcam;
+    private Interpreter tfLite;
     public class Claw {
         private DcMotorSimple wrist3;
 
@@ -343,6 +355,14 @@ public class BlueSideTestAuto extends LinearOpMode {
         }
 
     }
+    private MappedByteBuffer loadModelFile() throws Exception {
+        FileInputStream fis = new FileInputStream("model.tflite");
+        FileChannel fileChannel = fis.getChannel();
+        long startOffset = 0;
+        long declaredLength = fileChannel.size();
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
+    }
+
 
 
     @Override
@@ -352,7 +372,20 @@ public class BlueSideTestAuto extends LinearOpMode {
         Claw wrist3 = new Claw(hardwareMap);
         SCLift scLift = new SCLift(hardwareMap);
         Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+
         //Bucket bucket = new Bucket(hardwareMap);
+        /***int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam = OpenCvCameraFactory.getInstance().createWebcam(
+                hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+
+        try {
+            tfLite = new Interpreter(loadModelFile());
+        } catch (Exception e) {
+            telemetry.addData("Error", "Failed to load model");
+            telemetry.update();
+            return;
+        }**/
 
 
 
