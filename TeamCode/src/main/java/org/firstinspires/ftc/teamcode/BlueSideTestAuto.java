@@ -173,7 +173,7 @@ public class BlueSideTestAuto extends LinearOpMode {
     }
     public class Arm2 {
         private DcMotor motor1;
-        private DcMotor motor2;
+
         private Servo wrist1 = null; // First wrist servo
         private Servo wrist2 = null;
         private DcMotorSimple wrist3 = null;
@@ -203,7 +203,6 @@ public class BlueSideTestAuto extends LinearOpMode {
             telemetry = telemetryIn;
 
             motor1.setDirection(DcMotor.Direction.FORWARD);
-            motor2.setDirection(DcMotor.Direction.REVERSE);
 
         }
 
@@ -427,7 +426,8 @@ public class BlueSideTestAuto extends LinearOpMode {
     public void runOpMode() {
         Pose2d initialPose = new Pose2d(24, 0, 0);
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
-        Claw wrist3 = new Claw(hardwareMap);
+
+        //Claw wrist3 = new Claw(hardwareMap);
         SCLift scLift = new SCLift(hardwareMap);
         Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
 
@@ -465,7 +465,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
 
         // actions that need to happen on init; for instance, a claw tightening.
-        wrist3.closeClaw();
+        //wrist3.closeClaw();
         //bucket.UntiltBucket();
 
         telemetry.update();
@@ -485,7 +485,7 @@ public class BlueSideTestAuto extends LinearOpMode {
                         //bucket.unTiltBucketAction(),
                         tab2.build(),
                         //put the arm in the right positon
-                        wrist3.closeClaw(),
+                        //wrist3.closeClaw(),
                         trajectoryActionCloseOut
                 )
         );

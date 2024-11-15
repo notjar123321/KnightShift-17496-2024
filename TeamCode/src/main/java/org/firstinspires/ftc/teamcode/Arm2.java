@@ -29,7 +29,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 @Config
 public class Arm2 {
     private DcMotor motor1;
-    private DcMotor motor2;
+
     private Servo wrist1 = null; // First wrist servo
     private Servo wrist2 = null;
     private DcMotorSimple wrist3 = null;
@@ -59,15 +59,15 @@ public class Arm2 {
         telemetry = telemetryIn;
 
         motor1.setDirection(DcMotor.Direction.FORWARD);
-        motor2.setDirection(DcMotor.Direction.REVERSE);
+
 
     }
 
     public void update() {
-        if(motor1.getCurrentPosition() < 300) {
+        /**if(motor1.getCurrentPosition() < 300) {
             wrist1.setPosition(.95);
             wrist2.setPosition(.95);
-        }
+        }**/
         // Get the current position of the arm
         double pos = (motor1.getCurrentPosition());
         double error = target_position - pos;
@@ -108,8 +108,8 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.1; // Initial low power
-        double maxPower = 0.5; // Maximum allowable power
+        double currentPower = 0.4; // Initial low power
+        double maxPower = 0.9; // Maximum allowable power
 
         while (motor1.isBusy()) {
             int currentPos = (motor1.getCurrentPosition());
@@ -134,8 +134,8 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.2; // Initial low power
-        double maxPower = 0.5; // Maximum allowable power
+        double currentPower = 0.6; // Initial low power
+        double maxPower = 0.8; // Maximum allowable power
 
         while (motor1.isBusy() ) {
             int currentPos = (motor1.getCurrentPosition());
@@ -172,7 +172,7 @@ public class Arm2 {
             motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-            motor1.setPower(0.3);
+            motor1.setPower(0.8);
 
 
             // Delay to control smoothness
@@ -180,7 +180,7 @@ public class Arm2 {
         }
 
         // Final adjustment at lower power for precision
-        motor1.setPower(0.5);
+        motor1.setPower(0.8);
 
     }
 
