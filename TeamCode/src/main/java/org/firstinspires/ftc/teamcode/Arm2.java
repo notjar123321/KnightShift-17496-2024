@@ -40,25 +40,29 @@ public class Arm2 {
     private double integralSum = 0;
     private double lastError = 0;
     private double lastTime = 0;
-    private double gravityCompensation = 0.04; // Tune as needed
+    private double gravityCompensation = 0.02; // Tune as needed
 
     // PID Constants
     private double kP = 0.1;
     private double kI = 0.01;
     private double kD = 0.01;
-    private double maxIntegral = 10; // Limit integral to prevent windup
+    private double maxIntegral = 1; // Limit integral to prevent windup
     private double maxDerivative = 0.1; // Limit derivative changes
 
     public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
+        target_position=0;
         motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
 
         wrist1 = hardwareMap.get(Servo.class, "wrist1");
-        wrist2 = hardwareMap.get(Servo.class, "wrist2");
+
         wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
         timer = elapsedTime;
         telemetry = telemetryIn;
 
         motor1.setDirection(DcMotor.Direction.FORWARD);
+        motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
+
 
 
     }

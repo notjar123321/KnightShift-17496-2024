@@ -56,7 +56,7 @@ import android.content.res.AssetFileDescriptor;
 
 
 @Config
-@Autonomous(name = "Bucket_Side", group = "Autonomous")
+@Autonomous(name = "Lebron", group = "Autonomous")
 public class BlueSideTestAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
 
@@ -479,7 +479,7 @@ public class BlueSideTestAuto extends LinearOpMode {
         Actions.runBlocking(
                 new SequentialAction(
                         new ParallelAction(
-                        scLift.moveToPositionAction(3100),
+                        scLift.moveToPositionAction(2500),
                         trajectoryActionChosen),
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),

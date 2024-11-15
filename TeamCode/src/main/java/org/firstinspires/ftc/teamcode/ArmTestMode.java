@@ -22,7 +22,7 @@ public class ArmTestMode extends LinearOpMode {
     private DcMotor SC2;
     private Servo wrist1 = null; // First wrist servo
     private Servo wrist2 = null;
-    private DcMotorSimple wrist3 = null;
+    private Servo clawgrabber = null;
     private Arm2 arm;
 
     private double sens = 0.7;
@@ -65,6 +65,8 @@ public class ArmTestMode extends LinearOpMode {
             telemetry.addData("Arm Position Motor1", armMotor1.getCurrentPosition());
             telemetry.addData("SC1", SC1.getCurrentPosition());
             telemetry.addData("SC2", SC2.getCurrentPosition());
+            telemetry.addData("wrist1", wrist1.getPosition());
+            telemetry.addData("clawgrabber", clawgrabber.getPosition());
             telemetry.update();
 
         }
@@ -81,7 +83,7 @@ public class ArmTestMode extends LinearOpMode {
         SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
         //wrist1 = hardwareMap.get(Servo.class, "wrist1");
         //wrist2 = hardwareMap.get(Servo.class, "wrist2");
-        //wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
+        //clawgrabber = hardwareMap.get(DcMotorSimple.class, "wrist3");
 
         // Initialize motors
         FrontRightMotor.setDirection(DcMotor.Direction.FORWARD);

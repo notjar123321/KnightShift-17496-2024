@@ -1,11 +1,17 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 @TeleOp(name = "Single Driver improved LinearOp", group = "Linear Opmode")
 public class BasicOpMode_Linear4 extends LinearOpMode {
@@ -21,9 +27,15 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
     private DcMotor SC1;
     private DcMotor SC2;
     private Servo wrist1 = null; // First wrist servo
-    private Servo wrist2 = null;
+
     private DcMotorSimple wrist3 = null;
     private Arm2 arm;
+    private BNO055IMU imu;
+    private Orientation lastAngles = new Orientation();  // Orientation data from IMU
+    private double initYaw;  // Initial yaw from IMU at the start
+    private boolean isFieldCentric = true;  // Field-Centric control mode
+    private double powerFL, powerFR, powerBL, powerBR;  // Motor powers
+
 
     private double sens = 0.7;
     private int scissorLiftPosition = 0;
@@ -41,7 +53,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
 
         waitForStart();
         runtime.reset();
-        wristPosition = (wrist1.getPosition() + wrist2.getPosition()) / 2;
+        wristPosition = (wrist1.getPosition() ) ;
         while (opModeIsActive()) {
             // Toggle between modes with gamepad1.y
             if (gamepad1.y) {
@@ -65,14 +77,13 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                 wristPosition = wrist1.getPosition();
                 wristPosition += .05;
                 wrist1.setPosition(wristPosition);
-                wrist2.setPosition(1-wristPosition);
                 sleep(50);
             } else if (gamepad1.left_bumper) {
                 // Move wrist down (adjust the position as needed)
                 wristPosition = wrist1.getPosition();
                 wristPosition -= .05;
                 wrist1.setPosition(wristPosition);
-                wrist2.setPosition(1-wristPosition);
+
                 sleep(50);
             }
 
@@ -86,7 +97,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                     telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
                     telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
                     telemetry.addData("Wrist1 Position", wrist1.getPosition());
-                    telemetry.addData("Wrist2 Position", wrist2.getPosition());
+
                     telemetry.update();
                     break;
                 case 1: // Arm Control mode (includes scissor lift and wrist control)
@@ -98,7 +109,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                     telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
                     telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
                     telemetry.addData("Wrist1 Position", wrist1.getPosition());
-                    telemetry.addData("Wrist2 Position", wrist2.getPosition());
+
                     telemetry.update();
                     break;
             }
@@ -118,7 +129,6 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
         SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
         wrist1 = hardwareMap.get(Servo.class, "wrist1");
-        wrist2 = hardwareMap.get(Servo.class, "wrist2");
         wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
 
         // Initialize motors
@@ -128,8 +138,8 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
         armMotor1.setDirection(DcMotor.Direction.FORWARD);
         armMotor2.setDirection(DcMotor.Direction.REVERSE);
-        wrist1.setDirection(Servo.Direction.REVERSE);
-        wrist2.setDirection(Servo.Direction.FORWARD);
+        wrist1.setDirection(Servo.Direction.FORWARD);
+
         SC1.setDirection(DcMotor.Direction.FORWARD);
         SC2.setDirection(DcMotor.Direction.REVERSE);
 
@@ -144,6 +154,22 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         SC2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         arm = new Arm2(hardwareMap, runtime, telemetry);
+
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
+        parameters.loggingEnabled = false;
+        imu.initialize(parameters);
+
+        // Make sure the IMU is calibrated before proceeding
+        while (!isStopRequested() && !imu.isGyroCalibrated()) {
+            sleep(50);
+            idle();
+        }
+
+        // Get the initial heading for field-centric calculations
+        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        initYaw = lastAngles.firstAngle;
     }
 
     private void driveMode() {
