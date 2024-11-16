@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.AutoModes;
 
 import androidx.annotation.NonNull;
 
@@ -24,34 +24,20 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.opencv.core.Mat;
-import org.tensorflow.lite.*;
-import org.openftc.easyopencv.OpenCvCamera;
+import org.firstinspires.ftc.teamcode.Classes.MecanumDrive;
+import org.firstinspires.ftc.teamcode.Classes.RobotConstants;
 import org.openftc.easyopencv.OpenCvCameraFactory;
-import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 
-import android.app.Activity;
-import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.*;
-import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.ops.ResizeOp;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.io.FileInputStream;
-import android.content.res.AssetFileDescriptor;
 
 @Config
 @Autonomous(name = "Notworkingcameravision", group = "Autonomous")
