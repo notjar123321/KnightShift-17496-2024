@@ -53,8 +53,8 @@ public class ArmTestMode extends LinearOpMode {
                 SC2.setTargetPosition(scissorLiftPosition);
                 SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC1.setPower(1);
-                SC2.setPower(1);
+                SC1.setPower(.2);
+                SC2.setPower(.2);
                 sleep(100);
             }
             if(gamepad1.dpad_up)
@@ -65,8 +65,9 @@ public class ArmTestMode extends LinearOpMode {
             telemetry.addData("Arm Position Motor1", armMotor1.getCurrentPosition());
             telemetry.addData("SC1", SC1.getCurrentPosition());
             telemetry.addData("SC2", SC2.getCurrentPosition());
-            telemetry.addData("wrist1", wrist1.getPosition());
+            telemetry.addData("wrist1 pos", wrist1.getPosition());
             telemetry.addData("clawgrabber", clawgrabber.getPosition());
+
             telemetry.update();
 
         }
@@ -81,8 +82,8 @@ public class ArmTestMode extends LinearOpMode {
 
         SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
         SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
-        //wrist1 = hardwareMap.get(Servo.class, "wrist1");
-        //wrist2 = hardwareMap.get(Servo.class, "wrist2");
+        wrist1 = hardwareMap.get(Servo.class, "wrist1");
+        clawgrabber = hardwareMap.get(Servo.class, "wrist2");
         //clawgrabber = hardwareMap.get(DcMotorSimple.class, "wrist3");
 
         // Initialize motors

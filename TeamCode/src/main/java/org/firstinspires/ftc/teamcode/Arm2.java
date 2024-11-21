@@ -36,18 +36,20 @@ public class Arm2 {
     private ElapsedTime timer;
     private Telemetry telemetry;
 
-    public static int target_position = 0;
-    private double integralSum = 0;
-    private double lastError = 0;
-    private double lastTime = 0;
-    private double gravityCompensation = 0.02; // Tune as needed
+    public static int target_position = 0; // Target position for the arm
+    private double integralSum = 0; // Integral for PID control
+    private double lastError = 0; // Last error value for PID
+    private double lastTime = 0; // Last time update was called
+    private double gravityCompensation = 0.005; // Gravity compensation factor (adjust as needed)
+    private double target_velocity = .05; // Target velocity for constant velocity control
 
     // PID Constants
-    private double kP = 0.1;
-    private double kI = 0.01;
-    private double kD = 0.01;
-    private double maxIntegral = 1; // Limit integral to prevent windup
-    private double maxDerivative = 0.1; // Limit derivative changes
+    private double kP = 0.1; // Proportional constant
+    private double kI = 0.01; // Integral constant
+    private double kD = 0.01; // Derivative constant
+
+    private double maxIntegral = .05; // Limit integral to prevent windup
+    private double maxDerivative = 0.0003; // Limit derivative changes
 
     public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
         target_position=0;
@@ -113,7 +115,7 @@ public class Arm2 {
 
 
         double currentPower = 0.4; // Initial low power
-        double maxPower = 0.9; // Maximum allowable power
+        double maxPower = 0.5; // Maximum allowable power
 
         while (motor1.isBusy()) {
             int currentPos = (motor1.getCurrentPosition());
@@ -138,7 +140,7 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.6; // Initial low power
+        double currentPower = 0.3; // Initial low power
         double maxPower = 0.8; // Maximum allowable power
 
         while (motor1.isBusy() ) {
