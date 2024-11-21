@@ -141,7 +141,7 @@ public class Arm2 {
 
 
         double currentPower = 0.3; // Initial low power
-        double maxPower = 0.8; // Maximum allowable power
+        double maxPower = 0.45; // Maximum allowable power
 
         while (motor1.isBusy() ) {
             int currentPos = (motor1.getCurrentPosition());
@@ -178,7 +178,7 @@ public class Arm2 {
             motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-            motor1.setPower(0.8);
+            motor1.setPower(0.5);
 
 
             // Delay to control smoothness
