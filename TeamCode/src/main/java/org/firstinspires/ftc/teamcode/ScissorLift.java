@@ -37,8 +37,8 @@ public class ScissorLift {
         motorSC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         motorSC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        motorSC1.setPower(0.5); // Adjust power as needed
-        motorSC2.setPower(0.5);
+        motorSC1.setPower(1); // Adjust power as needed
+        motorSC2.setPower(1);
     }
 
     public void resetTimer() {

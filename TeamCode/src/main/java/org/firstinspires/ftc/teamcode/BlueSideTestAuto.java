@@ -424,7 +424,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        Pose2d initialPose = new Pose2d(24, 0, 0);
+        Pose2d initialPose = new Pose2d(24, 0, Math.toRadians(180));
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
 
         //Claw wrist3 = new Claw(hardwareMap);
@@ -442,11 +442,11 @@ public class BlueSideTestAuto extends LinearOpMode {
 
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(4, 4))
-                .turn(Math.toRadians(45+180));
-        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
-                .strafeTo(new Vector2d(10, 14))
-                .turn(Math.toRadians(45));
+                .strafeTo(new Vector2d(4, 4));
+
+        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(0)))
+                .strafeTo(new Vector2d(0, 0));
+                //.turn(Math.toRadians(45));
         TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
                 .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
@@ -481,10 +481,10 @@ public class BlueSideTestAuto extends LinearOpMode {
                         trajectoryActionChosen,
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),
-                        tab2.build(),
+                        tab2.build()
                         //put the arm in the right positon
                         //wrist3.closeClaw(),
-                        trajectoryActionCloseOut
+                        //trajectoryActionCloseOut
                 )
         );
     }

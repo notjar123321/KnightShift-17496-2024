@@ -53,8 +53,8 @@ public class ArmTestMode extends LinearOpMode {
                 SC2.setTargetPosition(scissorLiftPosition);
                 SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC1.setPower(.2);
-                SC2.setPower(.2);
+                SC1.setPower(1);
+                SC2.setPower(1);
                 sleep(100);
             }
             if(gamepad1.dpad_up)
