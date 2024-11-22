@@ -150,14 +150,14 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
                 sleep(50);
             }
-            if (gamepad1.y) {
+            if (gamepad2.y) {
                 bucketUp = true;
                 // Move wrist up (adjust the position as needed)
                 bucket.setPower(-1);
                 sleep(300);
                 bucket.setPower(0);
                 sleep(10);
-            } else if (gamepad1.x) {
+            } else if (gamepad2.x) {
                 bucketUp = false;
                 // Move wrist down (adjust the position as needed)
                 bucket.setPower(1);
@@ -182,8 +182,11 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             BackLeftMotor.setPower(backLeftPower * sens);
             FrontRightMotor.setPower(frontRightPower * sens);
             BackRightMotor.setPower(backRightPower * sens);
-            if (gamepad2.x){
+            if (gamepad2.dpad_up){
                 arm.moveElbowTo(450);
+            }
+            if (gamepad2.dpad_up){
+                arm.moveElbowTo(800);
             }
 
 
@@ -193,7 +196,8 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
             }
             if (gamepad2.right_stick_y!=0) {
-                SC2.setPower(gamepad2.right_stick_x);
+                SC2.setPower(gamepad2.right_stick_y);
+                sleep(10);
             }
             if (gamepad2.dpad_right) {
                 arm.moveElbow(30);
@@ -273,6 +277,7 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
         SC2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         armMotor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
         SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         SC1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

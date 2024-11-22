@@ -457,7 +457,6 @@ public class JustMoveRight extends LinearOpMode {
                         trajectoryActionChosen
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),
-
                         //put the arm in the right positon
                         //wrist3.closeClaw(),
                         //trajectoryActionCloseOut
