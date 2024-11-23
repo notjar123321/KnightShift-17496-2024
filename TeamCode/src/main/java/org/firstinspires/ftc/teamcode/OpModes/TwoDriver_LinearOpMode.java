@@ -8,6 +8,10 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.robotcore.util.Range;
+
+
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
@@ -29,19 +33,21 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
     private DcMotor SC1;
     private DcMotor SC2;
     private Servo wrist1 = null; // First wrist servo
-    private Servo bucket = null;
+    private DcMotorSimple bucket = null;
 
-    private Servo wrist3 = null;
+    private DcMotorSimple wrist3 = null;
     private Arm2 arm;
     BNO055IMU               imu;
 
 
-    private double sens = 0.7;
+    private double sens = 1;
     private int scissorLiftPosition = 0;
     private int mode = 0; // 0: Drive, 1: Arm Control, 2: Scissor Lift
     public double wristPosition = 0;
     private double wristPower = 0;
     private boolean clawOpen = false;
+    private boolean bucketUp = false;
+
 
     private Orientation lastAngles = new Orientation();
     private double currAngle = 0.0;
@@ -59,7 +65,7 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
     private double encoderTicksPerRevolution = 560*2;  // Encoder ticks per full wheel revolution
     private double distancePerTick = (2 * Math.PI * wheelRadius) / encoderTicksPerRevolution; // Distance per encoder tick
     private String clawposition = "Open";
-    private boolean isFieldCentric = false;
+    //private boolean isFieldCentric = false;
 
     double y = 0;
     double x = 0;
@@ -101,127 +107,103 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             lastLeftEncoder = leftEncoder;
             lastRightEncoder = rightEncoder;
             double deltaTheta = (rightDistance - leftDistance) / wheelBase;
-            robotAngle += deltaTheta;
 
 
             // Calculate robot's forward movement (average of left and right distance)
             double averageDistance = (leftDistance + rightDistance) / 2;
 
-            // Update robot's position (x, y)
-            double deltaX = averageDistance * Math.cos(robotAngle);
-            double deltaY = averageDistance * Math.sin(robotAngle);
-
-            // Update the robot's global position (x, y, theta)
-            // Assuming initial position is (0, 0, 0)
-            double robotX = deltaX;
-            double robotY = deltaY;
-            double cosAngle = Math.cos(currAngle);
-            double sinAngle = Math.sin(currAngle);
-            lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-            currAngle = lastAngles.firstAngle; // The yaw (Z-axis) is usually the robot's heading.
-
-
 
             if (gamepad2.b && (clawOpen)) {
+                sleep(200);
                 clawOpen = false;
-                wrist3.setPosition(1); // Set motor power based on joystick input
+                wrist3.setPower(.2);
+                sleep(340);
+                wrist3.setPower(0);
+                // Set motor power based on joystick input
                 sleep(40);
             }
             if (gamepad2.b && (!clawOpen)) {
-                clawOpen = true;
-                wrist3.setPosition(0); // Set motor power based on joystick input
-                sleep(40);
-            }
-            if(gamepad1.y){
-                isFieldCentric=!isFieldCentric;
                 sleep(200);
+                clawOpen = true;
+                wrist3.setPower(-.2); // Set motor power based on joystick input
+                sleep(340);
+                wrist3.setPower(-.1);
+                sleep(40);
+
             }
+
+
             if (gamepad2.right_bumper) {
+                Range.clip(wrist1.getPosition(), 0, 1);
                 // Move wrist up (adjust the position as needed)
                 wristPosition = wrist1.getPosition();
-                wristPosition += .05;
+                wristPosition += .1;
                 wrist1.setPosition(wristPosition);
 
                 sleep(50);
             } else if (gamepad2.left_bumper) {
                 // Move wrist down (adjust the position as needed)
-                wristPosition = wrist1.getPosition();
-                wristPosition -= .05;
+                wristPosition = Range.clip(wrist1.getPosition(), 0, 1);
+                wristPosition -= .1;
                 wrist1.setPosition(wristPosition);
 
                 sleep(50);
             }
+            if (gamepad1.y) {
+                bucketUp = true;
+                // Move wrist up (adjust the position as needed)
+                bucket.setPower(-1);
+                sleep(300);
+                bucket.setPower(0);
+                sleep(10);
+            } else if (gamepad1.x) {
+                bucketUp = false;
+                // Move wrist down (adjust the position as needed)
+                bucket.setPower(1);
+                sleep(300);
+                bucket.setPower(0);
+                sleep(10);
+            }
             arm.update();
-            if(!isFieldCentric){
-                 y = -gamepad1.left_stick_y;
-                 x = gamepad1.left_stick_x;
-                 rx = gamepad1.right_stick_x;
+            sleep(10);
 
-                double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-                double frontLeftPower = (y + x + rx) / denominator;
-                double backLeftPower = (y - x + rx) / denominator;
-                double frontRightPower = (y - x - rx) / denominator;
-                double backRightPower = (y + x - rx) / denominator;
+            y = -gamepad1.left_stick_y;
+            x = gamepad1.left_stick_x;
+            rx = gamepad1.right_stick_x;
 
-                FrontLeftMotor.setPower(frontLeftPower * sens);
-                BackLeftMotor.setPower(backLeftPower * sens);
-                FrontRightMotor.setPower(frontRightPower * sens);
-                BackRightMotor.setPower(backRightPower * sens);
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+            double frontLeftPower = (y + x + rx) / denominator;
+            double backLeftPower = (y - x + rx) / denominator;
+            double frontRightPower = (y - x - rx) / denominator;
+            double backRightPower = (y + x - rx) / denominator;
 
+            FrontLeftMotor.setPower(frontLeftPower * sens);
+            BackLeftMotor.setPower(backLeftPower * sens);
+            FrontRightMotor.setPower(frontRightPower * sens);
+            BackRightMotor.setPower(backRightPower * sens);
+            if (gamepad2.x){
+                arm.moveElbowTo(450);
             }
-            else{
-                lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-                currAngle = lastAngles.firstAngle; // The yaw (Z-axis) is usually the robot's heading.
 
-                double robotHeading = Math.toRadians(currAngle);
 
-                // Transform joystick inputs for field-centric driving
-                double tempX = x * Math.cos(robotHeading) + y * Math.sin(robotHeading);
-                double tempY = -x * Math.sin(robotHeading) + y * Math.cos(robotHeading);
-
-                // Apply the adjusted values to the motors
-                double denominator = Math.max(Math.abs(tempY) + Math.abs(tempX) + Math.abs(rx), 1);
-                double frontLeftPower = (tempY + tempX + rx) / denominator;
-                double backLeftPower = (tempY - tempX + rx) / denominator;
-                double frontRightPower = (tempY - tempX - rx) / denominator;
-                double backRightPower = (tempY + tempX - rx) / denominator;
-
-                FrontLeftMotor.setPower(frontLeftPower * sens);
-                BackLeftMotor.setPower(backLeftPower * sens);
-                FrontRightMotor.setPower(frontRightPower * sens);
-                BackRightMotor.setPower(backRightPower * sens);
-            }
-            if (gamepad2.dpad_up) {
-                scissorLiftPosition += 100;
-
-                scissorLiftPosition = Math.max(0, Math.min(scissorLiftPosition, 3100));
-
-                SC1.setTargetPosition(scissorLiftPosition);
-                SC2.setTargetPosition(scissorLiftPosition);
-                SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC1.setPower(1);
-                SC2.setPower(1);
+            if (gamepad2.left_stick_y!=0) {
+                SC1.setPower(gamepad2.left_stick_y);
                 sleep(10);
+
             }
-            if (gamepad2.dpad_down) {
-                scissorLiftPosition -= 100;
-
-                scissorLiftPosition = Math.max(0, Math.min(scissorLiftPosition, 3100));
-
-                SC1.setTargetPosition(scissorLiftPosition);
-                SC2.setTargetPosition(scissorLiftPosition);
-                SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC1.setPower(1);
-                SC2.setPower(1);
-                sleep(10);
+            if (gamepad2.right_stick_y!=0) {
+                SC2.setPower(gamepad2.right_stick_x);
+            }
+            if (gamepad2.dpad_right) {
+                arm.moveElbow(30);
+                sleep(5);
+            }
+            if (gamepad2.dpad_left) {
+                arm.moveElbow(-30);
+                sleep(5);
             }
             robotAngle = (robotAngle + 360) % 360;
-            if(wrist3.getPosition()==1)
-                clawposition="Open";
-            if(wrist3.getPosition()==0)
-                clawposition="Closed";
+
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Arm Position Motor1", armMotor1.getCurrentPosition());
 
@@ -230,14 +212,9 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
             telemetry.addData("Wrist1 Position", wrist1.getPosition());
 
-            telemetry.addData("Wrist3 Position", clawposition);
+
             telemetry.addData("Left Encoder", leftEncoder);
             telemetry.addData("Right Encoder", rightEncoder);
-            telemetry.addData("Robot X", robotX);
-            telemetry.addData("Robot Y", robotY);
-            telemetry.addData("IMU Heading (Yaw)/Angle", currAngle);  // Robot’s yaw (heading)
-            telemetry.addData("IMU Pitch", lastAngles.secondAngle);  // Pitch
-            telemetry.addData("IMU Roll", lastAngles.thirdAngle);   // Roll
 
             telemetry.update();
 
@@ -252,42 +229,28 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
         armMotor1 = hardwareMap.get(DcMotor.class, "CLAW1"); // First arm motor
         SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
         SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
-        wrist3 = hardwareMap.get(Servo.class, "wrist1");
-        bucket= hardwareMap.get(Servo.class, "bucket");
-        wrist3 = hardwareMap.get(Servo.class, "wrist3");
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        wrist1 = hardwareMap.get(Servo.class, "wrist1"); //ACTUAL WRIST
+        bucket= hardwareMap.get(DcMotorSimple.class, "wrist3");
+        wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist2"); // claw open close
+        //imu = hardwareMap.get(BNO055IMU.class, "imu");
+        //BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
-        parameters.mode                = BNO055IMU.SensorMode.IMU;
-        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
-        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
-        parameters.loggingEnabled      = false;
-        Orientation             lastAngles = new Orientation();
-        double                  globalAngle, power = .30, correction;
+        //parameters.mode                = BNO055IMU.SensorMode.IMU;
+        //parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        //parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        //parameters.loggingEnabled      = false;
+        //Orientation             lastAngles = new Orientation();
+        //double                  globalAngle, power = .30, correction;
 
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        imu.initialize(parameters);
+        //Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        //imu.initialize(parameters);
 
-        telemetry.addData("Mode", "calibrating...");
-        telemetry.update();
 
-        // make sure the imu gyro is calibrated before continuing.
-        while (!isStopRequested() && !imu.isGyroCalibrated())
-        {
-            sleep(50);
-            idle();
-        }
-
-        telemetry.addData("Mode", "waiting for start");
-        telemetry.addData("imu calib status", imu.getCalibrationStatus().toString());
-        telemetry.update();
 
         // wait for start button.
 
         waitForStart();
 
-        telemetry.addData("Mode", "running");
-        telemetry.update();
 
 
 

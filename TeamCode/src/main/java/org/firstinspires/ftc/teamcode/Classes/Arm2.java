@@ -18,22 +18,25 @@ public class Arm2 {
 
     private Servo wrist1 = null; // First wrist servo
     private Servo wrist2 = null;
-    private DcMotorSimple wrist3 = null;
+    private DcMotorSimple bucket = null;
+
     private ElapsedTime timer;
     private Telemetry telemetry;
 
-    public static int target_position = 0;
-    private double integralSum = 0;
-    private double lastError = 0;
-    private double lastTime = 0;
-    private double gravityCompensation = 0.02; // Tune as needed
+    public static int target_position = 0; // Target position for the arm
+    private double integralSum = 0; // Integral for PID control
+    private double lastError = 0; // Last error value for PID
+    private double lastTime = 0; // Last time update was called
+    private double gravityCompensation = 0.00005; // Gravity compensation factor (adjust as needed)
+    private double target_velocity = .05; // Target velocity for constant velocity control
 
     // PID Constants
-    private double kP = 0.1;
-    private double kI = 0.01;
-    private double kD = 0.01;
-    private double maxIntegral = 1; // Limit integral to prevent windup
-    private double maxDerivative = 0.1; // Limit derivative changes
+    private double kP = 0.01; // Proportional constant
+    private double kI = 0.001; // Integral constant
+    private double kD = 0.001; // Derivative constant
+
+    private double maxIntegral = .05; // Limit integral to prevent windup
+    private double maxDerivative = 0.0003; // Limit derivative changes
 
     public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
         target_position=0;
@@ -41,11 +44,11 @@ public class Arm2 {
 
         wrist1 = hardwareMap.get(Servo.class, "wrist1");
 
-        wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
+        bucket = hardwareMap.get(DcMotorSimple.class, "wrist3");
         timer = elapsedTime;
         telemetry = telemetryIn;
 
-        motor1.setDirection(DcMotor.Direction.FORWARD);
+        motor1.setDirection(DcMotor.Direction.REVERSE);
         motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
 
@@ -88,6 +91,7 @@ public class Arm2 {
         // Update previous values for next loop
         lastError = error;
         lastTime = currentTime;
+        sleep(20);
     }
 
     public void moveElbowTo(int ticks) {
@@ -99,7 +103,11 @@ public class Arm2 {
 
 
         double currentPower = 0.4; // Initial low power
-        double maxPower = 0.9; // Maximum allowable power
+        double maxPower = 0.7; // Maximum allowable power
+        if (motor1.getCurrentPosition() < 200){
+            currentPower = 0.1; // Initial low power
+            maxPower = 0.2; // Maximum allowable power
+        }
 
         while (motor1.isBusy()) {
             int currentPos = (motor1.getCurrentPosition());
@@ -124,8 +132,13 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.6; // Initial low power
-        double maxPower = 0.8; // Maximum allowable power
+        double currentPower = 0.4; // Initial low power
+        double maxPower = 0.7; // Maximum allowable power
+        if (motor1.getCurrentPosition() < 200){
+            currentPower = 0.1; // Initial low power
+            maxPower = 0.3; // Maximum allowable power
+        }
+
 
         while (motor1.isBusy() ) {
             int currentPos = (motor1.getCurrentPosition());
@@ -162,7 +175,7 @@ public class Arm2 {
             motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-            motor1.setPower(0.8);
+            motor1.setPower(0.5);
 
 
             // Delay to control smoothness

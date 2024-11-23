@@ -1,45 +1,40 @@
-package org.firstinspires.ftc.teamcode.AutoModes;
+package org.firstinspires.ftc.teamcode;
+
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 
 import androidx.annotation.NonNull;
 
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.ParallelAction;
-import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
+import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
 import com.acmerobotics.roadrunner.Vector2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Classes.MecanumDrive;
-import org.firstinspires.ftc.teamcode.Classes.RobotConstants;
 import org.openftc.easyopencv.OpenCvWebcam;
-
-import android.content.res.AssetManager;
-import android.graphics.Bitmap;
-
-import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.DataType;
-import org.tensorflow.lite.support.*;
-import org.tensorflow.lite.support.image.TensorImage;
+import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.image.ImageProcessor;
+import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.image.ops.ResizeOp;
 
 
 @Config
-@Autonomous(name = "Lebron", group = "Autonomous")
-public class BlueSideTestAuto extends LinearOpMode {
+@Autonomous(name = "RightSideTest", group = "Autonomous")
+public class RightSideTestAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
 
     public class Claw {
@@ -406,7 +401,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        Pose2d initialPose = new Pose2d(24, 0, Math.toRadians(180));
+        Pose2d initialPose = new Pose2d(24, 0, 0);
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
 
         //Claw wrist3 = new Claw(hardwareMap);
@@ -424,11 +419,11 @@ public class BlueSideTestAuto extends LinearOpMode {
 
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(4, 4));
-
-        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(0)))
-                .strafeTo(new Vector2d(0, 0));
-                //.turn(Math.toRadians(45));
+                .strafeTo(new Vector2d(20, 4))
+                .turn(Math.toRadians(0));
+        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
+                .strafeTo(new Vector2d(10, 14))
+                .turn(Math.toRadians(45));
         TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
                 .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
@@ -440,7 +435,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
 
         Action trajectoryActionCloseOut = tab1.fresh()
-                .strafeTo(new Vector2d(48, 0))
+                .strafeTo(new Vector2d(0, 0))
                 .build();
 
 
@@ -460,13 +455,14 @@ public class BlueSideTestAuto extends LinearOpMode {
         arm.update();
         Actions.runBlocking(
                 new SequentialAction(
+                       // arm.moveElbowTo(200),
                         trajectoryActionChosen,
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),
-                        tab2.build()
+                        tab2.build(),
                         //put the arm in the right positon
                         //wrist3.closeClaw(),
-                        //trajectoryActionCloseOut
+                        trajectoryActionCloseOut
                 )
         );
     }
