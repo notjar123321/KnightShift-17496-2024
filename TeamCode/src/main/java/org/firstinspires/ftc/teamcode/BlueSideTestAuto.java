@@ -330,6 +330,51 @@ public class BlueSideTestAuto extends LinearOpMode {
         public void setTargetPosition(int position) {
             target_position = position;
         }
+        public class MoveElbowToAction implements Action {
+            private final int targetPosition;
+
+            public MoveElbowToAction(int position) {
+                this.targetPosition = position;
+            }
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                motor1.setTargetPosition(targetPosition);
+                motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                motor1.setPower(0.5);
+
+                if (!motor1.isBusy()) {
+                    motor1.setPower(0);
+                    motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    return true; // Action is complete
+                }
+
+                return false; // Action is still running
+            }
+        }
+
+        public Action moveElbowToAction(int position) {
+            return new MoveElbowToAction(position);
+        }
+
+        // Additional example: Smooth movement action
+        public class SmoothMoveElbowAction implements Action {
+            private final int targetPosition;
+            private boolean completed = false;
+
+            public SmoothMoveElbowAction(int position) {
+                this.targetPosition = position;
+            }
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                if (!completed) {
+                    moveElbowSmoothly(targetPosition);
+                    completed = true;
+                }
+                return completed;
+            }
+        }
     }
     public class Bucket {
         private Servo bucketServo;      //may be DCmotorSimple

@@ -32,12 +32,15 @@ dependencies {
     implementation "com.acmerobotics.roadrunner:core:1.0.0"
     implementation "com.acmerobotics.roadrunner:actions:1.0.0"
     implementation "com.acmerobotics.dashboard:dashboard:0.4.16"
-    implementation 'org.tensorflow:tensorflow-lite:2.8.0' // Replace with latest version if available
+    implementation 'org.tensorflow:tensorflow-lite:2.13.0' // Replace with latest version if available
     implementation 'org.openftc:easyopencv:1.7.3'
-    implementation 'org.tensorflow:tensorflow-lite:2.8.0'
+    implementation 'org.tensorflow:tensorflow-lite:2.13.0'
     implementation 'org.tensorflow:tensorflow-lite-gpu:2.3.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
-    implementation 'com.google.android.gms:play-services-basement:18.4.0'
+    implementation 'com.google.android.gms:play-services-basement:18.5.0'
+    implementation 'org.openftc:easyopencv:1.7.3'
+
+
 
 
 }

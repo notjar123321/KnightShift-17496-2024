@@ -1,533 +1,169 @@
 package org.firstinspires.ftc.teamcode;
 
-import androidx.annotation.NonNull;
-
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
-import com.acmerobotics.roadrunner.ParallelAction;
-import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
-import com.google.android.gms.common.api.Result;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.Pose2d;
-import com.acmerobotics.roadrunner.SequentialAction;
-import com.acmerobotics.roadrunner.Vector2d;
-import com.acmerobotics.roadrunner.ftc.Actions;
+import com.acmerobotics.dashboard.FtcDashboard;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-
-import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.opencv.core.Mat;
-import org.tensorflow.lite.*;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
+import org.openftc.easyopencv.OpenCvPipeline;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 
-import android.app.Activity;
-import android.content.res.AssetFileDescriptor;
-import android.content.res.AssetManager;
-import android.graphics.Bitmap;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.DataType;
-import org.tensorflow.lite.support.*;
-import org.tensorflow.lite.DataType;
-import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.DataType;
-import org.tensorflow.lite.support.image.ImageProcessor;
-import org.tensorflow.lite.support.image.ops.ResizeOp;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.io.FileInputStream;
-import android.content.res.AssetFileDescriptor;
-
-@Config
-@Autonomous(name = "Notworkingcameravision", group = "Autonomous")
+@Autonomous(name = "Cube Detection with Distance", group = "Autonomous")
 public class ComputerVisionAuto extends LinearOpMode {
+
     private OpenCvWebcam webcam;
-
-    public class Claw {
-        private DcMotorSimple wrist3;
-
-        public Claw(HardwareMap hardwareMap) {
-            wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
-        }
-
-        public void CloseClaw(){
-            wrist3.setPower(-.5);
-        }
-        public class CloseClaw implements Action {
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                wrist3.setPower(0.5);
-                return false;
-            }
-        }
-        public Action closeClaw() {
-            return new CloseClaw();
-        }
-        public void OpenClaw() {
-            wrist3.setPower(.5);
-        }
-        public class OpenClaw implements Action {
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                wrist3.setPower(-0.5);
-                return false;
-            }
-        }
-        public Action openClaw() {
-            return new OpenClaw();
-        }
-    }
-    public class SCLift {
-        private DcMotor SC1 = null;
-        private DcMotor SC2 = null;
-        int TARGET_POSITION;
-        public SCLift(HardwareMap hardwareMap) {
-            SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
-            SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
-            SC1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            SC1.setDirection(DcMotorSimple.Direction.FORWARD);
-            SC2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            SC2.setDirection(DcMotorSimple.Direction.REVERSE);
-        }
-        public void moveToPosition(int position) {
-            TARGET_POSITION=Range.clip(position, 0, 3100);
-            SC1.setTargetPosition(TARGET_POSITION);
-            SC2.setTargetPosition(TARGET_POSITION);
-
-            SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-            // Set power for lift movement
-            double liftPower = 1; // Adjust as necessary for your setup
-            SC1.setPower(liftPower);
-            SC2.setPower(liftPower);
-
-            // Wait until both motors reach the target
-            while (SC1.isBusy() && SC2.isBusy()) {
-                // Optionally add telemetry here for debugging
-            }
-
-            // Stop motors after reaching position
-            SC1.setPower(0);
-            SC2.setPower(0);
-
-            // Switch back to RUN_USING_ENCODER to maintain the position
-            SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        }
-        public class MoveToPositionAction implements Action {
-            private int targetPosition;
-
-            public MoveToPositionAction(int position) {
-                this.targetPosition = Range.clip(position, 0, 3100);
-            }
-
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                SC1.setTargetPosition(targetPosition);
-                SC2.setTargetPosition(targetPosition);
-
-                SC1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                SC2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-                double liftPower = 1.0;
-                SC1.setPower(liftPower);
-                SC2.setPower(liftPower);
-
-                // Stop if both motors have reached the target
-                if (!SC1.isBusy() && !SC2.isBusy()) {
-                    SC1.setPower(0);
-                    SC2.setPower(0);
-
-                    SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    return true; // Action is complete
-                }
-
-                return false; // Action is still running
-            }
-        }
-
-        // Method to get a MoveToPositionAction with the specified target position
-        public Action moveToPositionAction(int position) {
-            return new MoveToPositionAction(position);
-        }
-
-    }
-    public class Arm2 {
-        private DcMotor motor1;
-        private DcMotor motor2;
-        private Servo wrist1 = null; // First wrist servo
-        private Servo wrist2 = null;
-        private DcMotorSimple wrist3 = null;
-        private ElapsedTime timer;
-        private Telemetry telemetry;
-
-        public int target_position = 0;
-        private double integralSum = 0;
-        private double lastError = 0;
-        private double lastTime = 0;
-        private double gravityCompensation = 0.04; // Tune as needed
-
-        // PID Constants
-        private double kP = 0.1;
-        private double kI = 0.01;
-        private double kD = 0.01;
-        private double maxIntegral = 10; // Limit integral to prevent windup
-        private double maxDerivative = 0.1; // Limit derivative changes
-
-        public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
-            motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
-
-            wrist1 = hardwareMap.get(Servo.class, "wrist1");
-            wrist2 = hardwareMap.get(Servo.class, "wrist2");
-            wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
-            timer = elapsedTime;
-            telemetry = telemetryIn;
-
-            motor1.setDirection(DcMotor.Direction.FORWARD);
-            motor2.setDirection(DcMotor.Direction.REVERSE);
-
-        }
-
-        public void update() {
-            if(motor1.getCurrentPosition() < 300) {
-                wrist1.setPosition(.95);
-                wrist2.setPosition(.95);
-            }
-            // Get the current position of the arm
-            double pos = (motor1.getCurrentPosition());
-            double error = target_position - pos;
-
-            // Time elapsed for PID calculation
-            double currentTime = timer.seconds();
-            double deltaTime = currentTime - lastTime;
-
-            // Proportional term
-            double pTerm = kP * error;
-
-            // Integral term with limit
-            integralSum = Range.clip(integralSum + error * deltaTime, -maxIntegral, maxIntegral);
-            double iTerm = kI * integralSum;
-
-            // Derivative term with limit
-            double deltaError = error - lastError;
-            double dTerm = (deltaTime > 0) ? kD * Range.clip(deltaError / deltaTime, -maxDerivative, maxDerivative) : 0;
-
-            // PID output with gravity compensation
-            double pidOutput = pTerm + iTerm + dTerm;
-            double motorPower = Range.clip(pidOutput + gravityCompensation * Math.signum(error), -0.5, 0.5);
-
-            // Apply power to motors
-            motor1.setPower(motorPower);
-
-
-            // Update previous values for next loop
-            lastError = error;
-            lastTime = currentTime;
-        }
-
-        public void moveElbowTo(int ticks) {
-            target_position = ticks;
-            motor1.setTargetPosition(target_position);
-
-
-            motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-            double currentPower = 0.1; // Initial low power
-            double maxPower = 0.5; // Maximum allowable power
-
-            while (motor1.isBusy()) {
-                int currentPos = (motor1.getCurrentPosition());
-                int distanceToTarget = Math.abs(target_position - currentPos);
-
-                // Gradual power increase
-                currentPower = Range.clip(currentPower + 0.01, 0.1, maxPower);
-                if (distanceToTarget < 50) {
-                    currentPower *= 0.5; // Slow down near target
-                }
-
-                motor1.setPower(currentPower);
-
-            }
-        }
-        public void moveElbow(int ticks) {
-
-            target_position += ticks;
-            motor1.setTargetPosition(target_position);
-
-
-            motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-            double currentPower = 0.2; // Initial low power
-            double maxPower = 0.5; // Maximum allowable power
-
-            while (motor1.isBusy() ) {
-                int currentPos = (motor1.getCurrentPosition());
-                int distanceToTarget = Math.abs(target_position - currentPos);
-
-                // Gradual power increase
-                currentPower = Range.clip(currentPower + 0.01, 0.1, maxPower);
-                if (distanceToTarget < 50) {
-                    currentPower *= 0.5; // Slow down near target
-                }
-
-                motor1.setPower(currentPower);
-
-            }
-        }
-
-        public void moveElbowSmoothly(int targetPosition) {
-            target_position = targetPosition;
-
-            int error = targetPosition - targetPosition;
-
-            // Calculate the number of steps for smooth movement
-            int steps = 20;
-            int stepSize = error / steps;
-            stepSize = (stepSize == 0) ? (error > 0 ? 1 : -1) : stepSize;
-
-            for (int i = 0; i < steps; i++) {
-                int partialTarget = targetPosition + stepSize * (i + 1);
-
-                // Move arm gradually towards the target
-                motor1.setTargetPosition(partialTarget);
-
-
-                motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-                motor1.setPower(0.3);
-
-
-                // Delay to control smoothness
-                sleep(10);
-            }
-
-            // Final adjustment at lower power for precision
-            motor1.setPower(0.5);
-        }
-
-
-        public void setTargetPosition(int position) {
-            target_position = position;
-        }
-    }
-    public class Bucket {
-        private Servo bucketServo;      //may be DCmotorSimple
-        private static final double UP_POSITION = 1.0; // Max position for the servo (may have to flip depending on how built
-        private static final double DOWN_POSITION = 0.0;
-        public Bucket(HardwareMap hardwareMap) {
-            bucketServo = hardwareMap.get(Servo.class, "bucketServo");
-        }
-
-        public void tiltBucketToMax() {
-            bucketServo.setPosition(DOWN_POSITION);
-        }
-
-        // Action version for SequentialAction
-        public class TiltBucketToMaxAction implements Action {
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                bucketServo.setPosition(DOWN_POSITION);
-                return true; // Return true when the action is complete
-            }
-        }
-
-        public Action tiltBucketToMaxAction() {
-            return new TiltBucketToMaxAction();
-        }
-
-        // Regular method to untlit the bucket
-        public void UntiltBucket() {
-            bucketServo.setPosition(UP_POSITION);
-        }
-
-        // Action version for SequentialAction
-        public class UntiltBucketAction implements Action {
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                bucketServo.setPosition(UP_POSITION);
-                return true; // Return true when the action is complete
-            }
-        }
-
-        public Action unTiltBucketAction() {
-            return new UntiltBucketAction();
-        }
-
-    }
-    public class SampleDetection {
-        private Interpreter tflite;
-
-        // Load the model in the constructor or initialization function
-        public SampleDetection(AssetManager assetManager, String modelPath) {
-            SampleDetection detection = new SampleDetection(assetManager, "model.tflite");
-            int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
-                    "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-            webcam = OpenCvCameraFactory.getInstance().createWebcam(
-                    hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-
-        }
-        public TensorImage preprocessImage(Bitmap bitmap) {
-            TensorImage tensorImage = new TensorImage(DataType.UINT8);
-
-            // Load image into TensorImage
-            tensorImage.load(bitmap);
-
-            // Resize to model input size, e.g., 300x300
-            ImageProcessor imageProcessor = new ImageProcessor.Builder()
-                    .add(new ResizeOp(300, 300, ResizeOp.ResizeMethod.BILINEAR))
-                    .build();
-            return imageProcessor.process(tensorImage);
-        }
-       /** public int detectSampleLocation(SampleDetection detection) {
-            // Capture an image from the webcam
-            Bitmap bitmap = captureImageFromCamera();
-            if (bitmap == null) {
-                telemetry.addData("Detection", "Failed to capture image");
-                telemetry.update();
-                return -1; // Error code for failed capture
-            }
-
-            // Preprocess the image
-            TensorImage inputImage = detection.preprocessImage(bitmap);
-
-            // Model input/output setup (assumes single output with 3 locations)
-            float[][] outputLocations = new float[1][3]; // Adjust based on model output
-
-            // Run the inference
-            detection.tflite.run(inputImage.getBuffer(), outputLocations);
-
-            // Process output to determine sample location
-            float left = outputLocations[0][0];
-            float center = outputLocations[0][1];
-            float right = outputLocations[0][2];
-
-            if (left > center && left > right) {
-                return 0; // Left position
-            } else if (center > left && center > right) {
-                return 1; // Center position
-            } else {
-                return 2; // Right position
-            }
-        }
-
-        // Close the interpreter when done
-        public void close() {
-            if (tflite != null) {
-                tflite.close();
-                tflite = null;
-            }
-        }**/
-    }
-
-
-
+    private FtcDashboard dashboard;
 
     @Override
-    public void runOpMode() {
-        Pose2d initialPose = new Pose2d(24, 0, 0);
-        MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
-        Claw wrist3 = new Claw(hardwareMap);
-        SCLift scLift = new SCLift(hardwareMap);
-        Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        SampleDetection detection = new SampleDetection(hardwareMap.appContext.getAssets(), "model.tflite");
+    public void runOpMode() throws InterruptedException {
+        // Initialize the FTC Dashboard
+        dashboard = FtcDashboard.getInstance();
 
-
-        //Bucket bucket = new Bucket(hardwareMap);
+        // Get the camera monitor view ID
         int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+
+        // Initialize the webcam
         webcam = OpenCvCameraFactory.getInstance().createWebcam(
-                hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
-        try {
-            //tfLite = new Interpreter(loadModelFile());
-        } catch (Exception e) {
-            telemetry.addData("Error", "Failed to load model");
-            telemetry.update();
-            return;
-        }
+                hardwareMap.get(WebcamName.class, "Webcam 1"), cameraMonitorViewId);
 
+        // Set the pipeline
+        CubeDetectionPipeline pipeline = new CubeDetectionPipeline(telemetry);
+        webcam.setPipeline(pipeline);
 
+        // Open the camera asynchronously
+        webcam.openCameraDeviceAsync(new OpenCvCamera.AsyncCameraOpenListener() {
+            @Override
+            public void onOpened() {
+                // Start streaming to the dashboard
+                webcam.startStreaming(320, 240, OpenCvCameraRotation.UPRIGHT);
+                dashboard.startCameraStream(webcam, 30); // Stream at 30 FPS
+                telemetry.addData("Status", "Camera Opened Successfully");
+                telemetry.update();
+            }
 
-        while (opModeIsActive()) {
-            arm.update(); // consistently update PID control
-            telemetry.update(); // update telemetry in each loop cycle
-            //int sampleLocation = detectSampleLocation(detection);  // Detect sample position
+            @Override
+            public void onError(int errorCode) {
+                telemetry.addData("Camera Error", "Code: " + errorCode);
+                telemetry.update();
+            }
+        });
 
-
-            telemetry.update();
-            sleep(10);
-        }
-
-        TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(4, 4))
-                .turn(Math.toRadians(45+180));
-        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
-                .strafeTo(new Vector2d(10, 14))
-                .turn(Math.toRadians(45));
-        TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
-                .strafeTo(new Vector2d(-15, 14))
-                .turn(Math.toRadians(45));
-
-
-
-
-
-
-
-        Action trajectoryActionCloseOut = tab1.fresh()
-                .strafeTo(new Vector2d(48, 0))
-                .build();
-
-
-
-
-        // actions that need to happen on init; for instance, a claw tightening.
-        wrist3.closeClaw();
-        //bucket.UntiltBucket();
-
-        telemetry.update();
+        // Wait for the driver to press play
         waitForStart();
 
-        if (isStopRequested()) return;
+        // Main loop
+        while (opModeIsActive()) {
+            telemetry.addData("FPS", webcam.getFps());
+            telemetry.addData("Pipeline Time (ms)", webcam.getPipelineTimeMs());
+            telemetry.update();
+        }
 
-        Action trajectoryActionChosen;
-        trajectoryActionChosen = tab1.build();
-        arm.update();
-        Actions.runBlocking(
-                new SequentialAction(
-                        new ParallelAction(
-                                scLift.moveToPositionAction(3100),
-                                trajectoryActionChosen
-                        ),
-                        //bucket.tiltBucketToMaxAction(),
-                        //bucket.unTiltBucketAction(),
-                        tab2.build(),
-                        //put the arm in the right positon
-                        wrist3.closeClaw(),
-                        trajectoryActionCloseOut
-                )
-        );
+        // Stop streaming when done
+        webcam.stopStreaming();
+        webcam.closeCameraDevice();
+        dashboard.stopCameraStream();
+    }
+
+    static class CubeDetectionPipeline extends OpenCvPipeline {
+        private Telemetry telemetry;
+        private double focalLength = 460; // Replace with calibrated focal length
+        private double realHeight = 8.89; // Real-world cube height in cm
+
+        public CubeDetectionPipeline(Telemetry telemetry) {
+            this.telemetry = telemetry;
+        }
+
+        @Override
+        public Mat processFrame(Mat input) {
+            // Convert to HSV for color detection
+            Mat hsv = new Mat();
+            Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
+
+            // Refined HSV ranges
+            Scalar yellowLower = new Scalar(22, 80, 100); // Looser range for yellow
+            Scalar yellowUpper = new Scalar(32, 255, 255);
+            Scalar blueLower = new Scalar(100, 150, 50);
+            Scalar blueUpper = new Scalar(130, 255, 255);
+            Scalar redLower1 = new Scalar(0, 150, 120);  // Darker, more saturated reds
+            Scalar redUpper1 = new Scalar(10, 255, 255);
+            Scalar redLower2 = new Scalar(170, 150, 120);
+            Scalar redUpper2 = new Scalar(180, 255, 255);
+
+            // Find contours for all cubes
+            Mat maskYellow = new Mat();
+            Mat maskBlue = new Mat();
+            Mat maskRed = new Mat();
+
+            Core.inRange(hsv, yellowLower, yellowUpper, maskYellow);
+            Core.inRange(hsv, blueLower, blueUpper, maskBlue);
+            Core.inRange(hsv, redLower1, redUpper1, maskRed);
+            Mat maskRed2 = new Mat();
+            Core.inRange(hsv, redLower2, redUpper2, maskRed2);
+            Core.add(maskRed, maskRed2, maskRed);
+
+            // Combine masks and find contours
+            Mat combinedMask = new Mat();
+            Core.add(maskYellow, maskBlue, combinedMask);
+            Core.add(combinedMask, maskRed, combinedMask);
+
+            List<MatOfPoint> contours = new ArrayList<>();
+            Mat hierarchy = new Mat();
+            Imgproc.findContours(combinedMask, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
+
+            for (MatOfPoint contour : contours) {
+                Rect boundingRect = Imgproc.boundingRect(contour);
+
+                // Filter out small boxes
+                if (boundingRect.width < 30 || boundingRect.height < 30) { // Skip tiny boxes
+                    continue;
+                }
+
+                // Calculate apparent height in pixels
+                double apparentHeight = boundingRect.height;
+
+                // Calculate distance
+                double distance = (focalLength * realHeight) / apparentHeight;
+
+                // Determine the color
+                String color = "Unknown";
+                Mat cubeRegion = hsv.submat(boundingRect);
+                Scalar avgColor = Core.mean(cubeRegion);
+
+                if (avgColor.val[0] >= yellowLower.val[0] && avgColor.val[0] <= yellowUpper.val[0]) color = "Yellow";
+                else if (avgColor.val[0] >= blueLower.val[0] && avgColor.val[0] <= blueUpper.val[0]) color = "Blue";
+                else if ((avgColor.val[0] >= redLower1.val[0] && avgColor.val[0] <= redUpper1.val[0])
+                        || (avgColor.val[0] >= redLower2.val[0] && avgColor.val[0] <= redUpper2.val[0])) color = "Red";
+
+                // Add telemetry
+                telemetry.addData("Cube Color", color);
+                telemetry.addData("Distance (cm)", distance);
+
+                // Draw bounding box and label
+                Imgproc.rectangle(input, boundingRect.tl(), boundingRect.br(), new Scalar(0, 255, 0), 2);
+                Imgproc.putText(input, color + String.format(": %.2f cm", distance),
+                        new Point(boundingRect.x, boundingRect.y - 10),
+                        Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(0, 255, 0), 1);
+            }
+
+            telemetry.update();
+            return input; // Return the processed frame with annotations
+
+        }
     }
 }
-
-
-

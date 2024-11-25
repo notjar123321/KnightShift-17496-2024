@@ -71,10 +71,9 @@ public class Arm2 {
     }
 
     public void update() {
-        /**if(motor1.getCurrentPosition() < 300) {
-            wrist1.setPosition(.95);
-            wrist2.setPosition(.95);
-        }**/
+        if(motor1.getCurrentPosition() > 1800) {
+            target_position-=20;
+        }
         // Get the current position of the arm
         double pos = (motor1.getCurrentPosition());
         double error = target_position - pos;
@@ -146,9 +145,9 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.4; // Initial low power
+        double currentPower = 0.6; // Initial low power
         double maxPower = 0.7; // Maximum allowable power
-        if (motor1.getCurrentPosition() < 200){
+        if (motor1.getCurrentPosition() < 10){
             currentPower = 0.1; // Initial low power
             maxPower = 0.3; // Maximum allowable power
         }

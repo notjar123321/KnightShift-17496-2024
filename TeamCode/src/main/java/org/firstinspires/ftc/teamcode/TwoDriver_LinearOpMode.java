@@ -115,21 +115,21 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
 
             if (gamepad2.b && (clawOpen)) {
-                sleep(200);
+
                 clawOpen = false;
                 wrist3.setPower(.2);
-                sleep(340);
+                sleep(320);
                 wrist3.setPower(0);
                 // Set motor power based on joystick input
-                sleep(40);
+                sleep(4);
             }
             if (gamepad2.b && (!clawOpen)) {
-                sleep(200);
+
                 clawOpen = true;
                 wrist3.setPower(-.2); // Set motor power based on joystick input
-                sleep(340);
+                sleep(320);
                 wrist3.setPower(-.1);
-                sleep(40);
+                sleep(4);
 
             }
 
@@ -151,17 +151,18 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
                 sleep(50);
             }
             if (gamepad2.y) {
-                bucketUp = true;
+
                 // Move wrist up (adjust the position as needed)
                 bucket.setPower(-1);
-                sleep(300);
+                sleep(320);
                 bucket.setPower(0);
                 sleep(10);
-            } else if (gamepad2.x) {
-                bucketUp = false;
+            }
+            if (gamepad2.x) {
+
                 // Move wrist down (adjust the position as needed)
                 bucket.setPower(1);
-                sleep(300);
+                sleep(320);
                 bucket.setPower(0);
                 sleep(10);
             }
@@ -182,30 +183,37 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             BackLeftMotor.setPower(backLeftPower * sens);
             FrontRightMotor.setPower(frontRightPower * sens);
             BackRightMotor.setPower(backRightPower * sens);
-            if (gamepad2.dpad_up){
-                arm.moveElbowTo(450);
-            }
-            if (gamepad2.dpad_up){
-                arm.moveElbowTo(800);
-            }
 
 
-            if (gamepad2.left_stick_y!=0) {
-                SC1.setPower(gamepad2.left_stick_y);
+
+            if (gamepad1.dpad_down) {
+                SC1.setPower(.75);
+                SC2.setPower(1);
+                sleep(100);
+                SC1.setPower(0);
+                SC2.setPower(0);
                 sleep(10);
 
             }
-            if (gamepad2.right_stick_y!=0) {
-                SC2.setPower(gamepad2.right_stick_y);
+            if (gamepad1.dpad_up) {
+                SC1.setPower(-.75);
+                SC2.setPower(-1);
+                sleep(100);
+                SC1.setPower(0);
+                SC2.setPower(0);
                 sleep(10);
+            }
+            if (gamepad2.dpad_up) {
+                arm.moveElbow(45);
+                sleep(30);
             }
             if (gamepad2.dpad_right) {
-                arm.moveElbow(30);
-                sleep(5);
+                arm.moveElbowTo(600);
+                sleep(3);
             }
-            if (gamepad2.dpad_left) {
-                arm.moveElbow(-30);
-                sleep(5);
+            if (gamepad2.dpad_down) {
+                arm.moveElbow(-45);
+                sleep(30);
             }
             robotAngle = (robotAngle + 360) % 360;
 
@@ -215,6 +223,8 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             telemetry.addData("Target Position", Arm.target_position);
             telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
             telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
+            telemetry.addData("Intended position", scissorLiftPosition);
+
             telemetry.addData("Wrist1 Position", wrist1.getPosition());
 
 
@@ -269,8 +279,9 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
         wrist1.setDirection(Servo.Direction.REVERSE);
 
-        SC1.setDirection(DcMotor.Direction.FORWARD);
-        SC2.setDirection(DcMotor.Direction.REVERSE);
+
+        SC1.setDirection(DcMotorSimple.Direction.REVERSE);
+        SC2.setDirection(DcMotorSimple.Direction.FORWARD);
 
         // Set up scissor lift motors with encoders
         SC1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -280,8 +291,7 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
         SC1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         SC2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        SC1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        SC2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
 
         arm = new Arm2(hardwareMap, runtime, telemetry);
         robotAngle=0;

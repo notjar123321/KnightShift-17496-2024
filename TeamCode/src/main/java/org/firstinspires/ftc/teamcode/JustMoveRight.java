@@ -40,7 +40,7 @@ public class JustMoveRight extends LinearOpMode {
         private DcMotorSimple wrist3;
 
         public Claw(HardwareMap hardwareMap) {
-            wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
+            wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist2");
         }
 
         public void CloseClaw(){
@@ -49,7 +49,13 @@ public class JustMoveRight extends LinearOpMode {
         public class CloseClaw implements Action {
             @Override
             public boolean run(@NonNull TelemetryPacket packet) {
-                wrist3.setPower(0.5);
+                sleep(200);
+
+                wrist3.setPower(.2);
+                sleep(340);
+                wrist3.setPower(0);
+                // Set motor power based on joystick input
+                sleep(40);
                 return false;
             }
         }
@@ -57,12 +63,22 @@ public class JustMoveRight extends LinearOpMode {
             return new CloseClaw();
         }
         public void OpenClaw() {
-            wrist3.setPower(.5);
+            sleep(200);
+
+            wrist3.setPower(-.2); // Set motor power based on joystick input
+            sleep(340);
+            wrist3.setPower(-.1);
+            sleep(40);
         }
         public class OpenClaw implements Action {
             @Override
             public boolean run(@NonNull TelemetryPacket packet) {
-                wrist3.setPower(-0.5);
+                sleep(200);
+
+                wrist3.setPower(-.2); // Set motor power based on joystick input
+                sleep(340);
+                wrist3.setPower(-.1);
+                sleep(40);
                 return false;
             }
         }
@@ -151,7 +167,8 @@ public class JustMoveRight extends LinearOpMode {
         private DcMotor motor1;
 
         private Servo wrist1 = null; // First wrist servo
-        private Servo wrist2 = null;
+
+
         private DcMotorSimple wrist3 = null;
         private ElapsedTime timer;
         private Telemetry telemetry;
@@ -173,7 +190,7 @@ public class JustMoveRight extends LinearOpMode {
             motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
 
             wrist1 = hardwareMap.get(Servo.class, "wrist1");
-            wrist2 = hardwareMap.get(Servo.class, "wrist2");
+
             wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
             timer = elapsedTime;
             telemetry = telemetryIn;
@@ -185,7 +202,7 @@ public class JustMoveRight extends LinearOpMode {
         public void update() {
             if(motor1.getCurrentPosition() < 300) {
                 wrist1.setPosition(.95);
-                wrist2.setPosition(.95);
+
             }
             // Get the current position of the arm
             double pos = (motor1.getCurrentPosition());
@@ -403,7 +420,7 @@ public class JustMoveRight extends LinearOpMode {
         Pose2d initialPose = new Pose2d(0, 0, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
 
-        //Claw wrist3 = new Claw(hardwareMap);
+        Claw claw = new Claw(hardwareMap);
         SCLift scLift = new SCLift(hardwareMap);
         Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
 
@@ -418,14 +435,14 @@ public class JustMoveRight extends LinearOpMode {
 
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(50, 0));
+                .strafeTo(new Vector2d(45, 0));
 
-        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(0)))
-                .strafeTo(new Vector2d(0, 0));
-                //.turn(Math.toRadians(45));
-        TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
-                .strafeTo(new Vector2d(-15, 14))
-                .turn(Math.toRadians(45));
+//        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(0)))
+//                .strafeTo(new Vector2d(0, 0));
+//                //.turn(Math.toRadians(45));
+//        TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
+//                .strafeTo(new Vector2d(-15, 14))
+//                .turn(Math.toRadians(45));
 
 
 
@@ -434,14 +451,13 @@ public class JustMoveRight extends LinearOpMode {
 
 
         Action trajectoryActionCloseOut = tab1.fresh()
-                .strafeTo(new Vector2d(48, 0))
                 .build();
 
 
 
 
         // actions that need to happen on init; for instance, a claw tightening.
-        //wrist3.closeClaw();
+        claw.CloseClaw();
         //bucket.UntiltBucket();
 
         telemetry.update();
@@ -451,7 +467,7 @@ public class JustMoveRight extends LinearOpMode {
 
         Action trajectoryActionChosen;
         trajectoryActionChosen = tab1.build();
-        arm.update();
+
         Actions.runBlocking(
                 new SequentialAction(
                         trajectoryActionChosen
@@ -459,7 +475,7 @@ public class JustMoveRight extends LinearOpMode {
                         //bucket.unTiltBucketAction(),
                         //put the arm in the right positon
                         //wrist3.closeClaw(),
-                        //trajectoryActionCloseOut
+
                 )
         );
     }
