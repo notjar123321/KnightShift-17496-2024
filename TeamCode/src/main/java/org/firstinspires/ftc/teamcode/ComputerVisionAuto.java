@@ -7,6 +7,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.RotatedRect;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -84,6 +86,10 @@ public class ComputerVisionAuto extends LinearOpMode {
         private Telemetry telemetry;
         private double focalLength = 460; // Replace with calibrated focal length
         private double realHeight = 8.89; // Real-world cube height in cm
+        Mat hsv = new Mat();
+        Mat maskYellow = new Mat();
+        Mat maskBlue = new Mat();
+        Mat maskRed = new Mat();
 
         public CubeDetectionPipeline(Telemetry telemetry) {
             this.telemetry = telemetry;
@@ -92,23 +98,22 @@ public class ComputerVisionAuto extends LinearOpMode {
         @Override
         public Mat processFrame(Mat input) {
             // Convert to HSV for color detection
-            Mat hsv = new Mat();
+
             Imgproc.cvtColor(input, hsv, Imgproc.COLOR_RGB2HSV);
 
+
             // Refined HSV ranges
-            Scalar yellowLower = new Scalar(22, 80, 100); // Looser range for yellow
-            Scalar yellowUpper = new Scalar(32, 255, 255);
-            Scalar blueLower = new Scalar(100, 150, 50);
-            Scalar blueUpper = new Scalar(130, 255, 255);
-            Scalar redLower1 = new Scalar(0, 150, 120);  // Darker, more saturated reds
-            Scalar redUpper1 = new Scalar(10, 255, 255);
-            Scalar redLower2 = new Scalar(170, 150, 120);
-            Scalar redUpper2 = new Scalar(180, 255, 255);
+            Scalar yellowLower = new Scalar(10, 150, 100);  // More saturated, moderate brightness yellow
+            Scalar yellowUpper = new Scalar(40, 255, 255);  // Bright yellow
+            Scalar blueLower = new Scalar(90, 150, 50);
+            Scalar blueUpper = new Scalar(140, 255, 255);
+            Scalar redLower1 = new Scalar(0, 150, 120);  // Darker red (low hue range)
+            Scalar redUpper1 = new Scalar(40, 255, 255);  // Bright red (low hue range)
+            Scalar redLower2 = new Scalar(130, 150, 120);  // Darker red (high hue range)
+            Scalar redUpper2 = new Scalar(210, 255, 255);  // Bright red (high hue range)
 
             // Find contours for all cubes
-            Mat maskYellow = new Mat();
-            Mat maskBlue = new Mat();
-            Mat maskRed = new Mat();
+
 
             Core.inRange(hsv, yellowLower, yellowUpper, maskYellow);
             Core.inRange(hsv, blueLower, blueUpper, maskBlue);
@@ -127,22 +132,23 @@ public class ComputerVisionAuto extends LinearOpMode {
             Imgproc.findContours(combinedMask, contours, hierarchy, Imgproc.RETR_TREE, Imgproc.CHAIN_APPROX_SIMPLE);
 
             for (MatOfPoint contour : contours) {
-                Rect boundingRect = Imgproc.boundingRect(contour);
+                // Get the minimum area rectangle
+                RotatedRect rotatedRect = Imgproc.minAreaRect(new MatOfPoint2f(contour.toArray()));
 
                 // Filter out small boxes
-                if (boundingRect.width < 30 || boundingRect.height < 30) { // Skip tiny boxes
+                if (rotatedRect.size.width < 80 || rotatedRect.size.height < 50) {
                     continue;
                 }
 
-                // Calculate apparent height in pixels
-                double apparentHeight = boundingRect.height;
+                // Calculate apparent height (shorter side of the rectangle)
+                double apparentHeight = Math.min(rotatedRect.size.width, rotatedRect.size.height);
 
                 // Calculate distance
                 double distance = (focalLength * realHeight) / apparentHeight;
 
                 // Determine the color
                 String color = "Unknown";
-                Mat cubeRegion = hsv.submat(boundingRect);
+                Mat cubeRegion = hsv.submat(rotatedRect.boundingRect());
                 Scalar avgColor = Core.mean(cubeRegion);
 
                 if (avgColor.val[0] >= yellowLower.val[0] && avgColor.val[0] <= yellowUpper.val[0]) color = "Yellow";
@@ -154,16 +160,26 @@ public class ComputerVisionAuto extends LinearOpMode {
                 telemetry.addData("Cube Color", color);
                 telemetry.addData("Distance (cm)", distance);
 
-                // Draw bounding box and label
-                Imgproc.rectangle(input, boundingRect.tl(), boundingRect.br(), new Scalar(0, 255, 0), 2);
+                // Draw rotated rectangle
+                Point[] vertices = new Point[4];
+                rotatedRect.points(vertices);
+                for (int j = 0; j < 4; j++) {
+                    Imgproc.line(input, vertices[j], vertices[(j + 1) % 4], new Scalar(0, 255, 0), 2);
+                }
+
+                // Draw label
                 Imgproc.putText(input, color + String.format(": %.2f cm", distance),
-                        new Point(boundingRect.x, boundingRect.y - 10),
+                        new Point(rotatedRect.center.x, rotatedRect.center.y - 10),
                         Imgproc.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(0, 255, 0), 1);
             }
+
+
+
 
             telemetry.update();
             return input; // Return the processed frame with annotations
 
         }
     }
+
 }
