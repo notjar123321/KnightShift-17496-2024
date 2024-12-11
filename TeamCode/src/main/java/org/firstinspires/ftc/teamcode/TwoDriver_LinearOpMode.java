@@ -118,16 +118,16 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
                 clawOpen = false;
                 wrist3.setPower(.2);
-                sleep(320);
+
                 wrist3.setPower(0);
                 // Set motor power based on joystick input
-                sleep(4);
+                nonBlockingDelay(4);
             }
             if (gamepad2.b && (!clawOpen)) {
 
                 clawOpen = true;
                 wrist3.setPower(-.2); // Set motor power based on joystick input
-                sleep(320);
+                nonBlockingDelay(320);
                 wrist3.setPower(-.1);
                 sleep(4);
 
@@ -141,20 +141,20 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
                 wristPosition += .1;
                 wrist1.setPosition(wristPosition);
 
-                sleep(50);
+                nonBlockingDelay(50);
             } else if (gamepad2.left_bumper) {
                 // Move wrist down (adjust the position as needed)
                 wristPosition = Range.clip(wrist1.getPosition(), 0, 1);
                 wristPosition -= .1;
                 wrist1.setPosition(wristPosition);
 
-                sleep(50);
+                nonBlockingDelay(50);
             }
             if (gamepad2.y) {
 
                 // Move wrist up (adjust the position as needed)
                 bucket.setPower(-1);
-                sleep(320);
+                nonBlockingDelay(320);
                 bucket.setPower(0);
                 sleep(10);
             }
@@ -162,12 +162,12 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
                 // Move wrist down (adjust the position as needed)
                 bucket.setPower(1);
-                sleep(320);
+                nonBlockingDelay(320);
                 bucket.setPower(0);
-                sleep(10);
+                nonBlockingDelay(10);
             }
             arm.update();
-            sleep(10);
+            nonBlockingDelay(10);
 
             y = -gamepad1.left_stick_y;
             x = gamepad1.left_stick_x;
@@ -189,23 +189,23 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
             if (gamepad1.dpad_down) {
                 SC1.setPower(.75);
                 SC2.setPower(1);
-                sleep(100);
+                nonBlockingDelay(100);
                 SC1.setPower(0);
                 SC2.setPower(0);
-                sleep(10);
+                nonBlockingDelay(10);
 
             }
             if (gamepad1.dpad_up) {
                 SC1.setPower(-.75);
                 SC2.setPower(-1);
-                sleep(100);
+                nonBlockingDelay(100);
                 SC1.setPower(0);
                 SC2.setPower(0);
-                sleep(10);
+                nonBlockingDelay(10);
             }
             if (gamepad2.dpad_up) {
                 arm.moveElbow(45);
-                sleep(30);
+                nonBlockingDelay(30);
             }
             if (gamepad2.dpad_right) {
                 arm.moveElbowTo(600);
@@ -235,6 +235,15 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
 
         }
     }
+    private void nonBlockingDelay(double milliseconds) {
+        ElapsedTime delayTimer = new ElapsedTime();
+        delayTimer.reset();
+        while (opModeIsActive() && delayTimer.milliseconds() < milliseconds) {
+            telemetry.addData("Waiting", "Time remaining: %.1f ms", milliseconds - delayTimer.milliseconds());
+            telemetry.update();
+        }
+    }
+
 
     private void initializeHardware() {
         FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
