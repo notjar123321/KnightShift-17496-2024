@@ -1,10 +1,8 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Classes;
 
 import static android.os.SystemClock.sleep;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.hardwareMap;
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.telemetry;
+
 import com.acmerobotics.dashboard.config.Config;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
@@ -12,18 +10,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 @Config
@@ -71,9 +57,10 @@ public class Arm2 {
     }
 
     public void update() {
-        if(motor1.getCurrentPosition() > 1800) {
-            target_position-=20;
-        }
+        /**if(motor1.getCurrentPosition() < 300) {
+            wrist1.setPosition(.95);
+            wrist2.setPosition(.95);
+        }**/
         // Get the current position of the arm
         double pos = (motor1.getCurrentPosition());
         double error = target_position - pos;
@@ -145,9 +132,9 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.6; // Initial low power
+        double currentPower = 0.4; // Initial low power
         double maxPower = 0.7; // Maximum allowable power
-        if (motor1.getCurrentPosition() < 10){
+        if (motor1.getCurrentPosition() < 200){
             currentPower = 0.1; // Initial low power
             maxPower = 0.3; // Maximum allowable power
         }

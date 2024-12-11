@@ -1,10 +1,11 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.AutoModes;
 
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
+import com.google.android.gms.common.api.Result;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -23,41 +24,24 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
-import org.opencv.core.Mat;
-import org.tensorflow.lite.*;
-import org.openftc.easyopencv.OpenCvCamera;
+import org.firstinspires.ftc.teamcode.Classes.MecanumDrive;
+import org.firstinspires.ftc.teamcode.Classes.RobotConstants;
 import org.openftc.easyopencv.OpenCvCameraFactory;
-import org.openftc.easyopencv.OpenCvCameraRotation;
 import org.openftc.easyopencv.OpenCvWebcam;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 
-import android.app.Activity;
-import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 
 import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.*;
-import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.DataType;
 import org.tensorflow.lite.support.image.ImageProcessor;
 import org.tensorflow.lite.support.image.ops.ResizeOp;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.io.FileInputStream;
-import android.content.res.AssetFileDescriptor;
-
-
-
 
 @Config
-@Autonomous(name = "Lebron", group = "Autonomous")
-public class BlueSideTestAuto extends LinearOpMode {
+@Autonomous(name = "Notworkingcameravision", group = "Autonomous")
+public class ComputerVisionAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
 
     public class Claw {
@@ -173,7 +157,7 @@ public class BlueSideTestAuto extends LinearOpMode {
     }
     public class Arm2 {
         private DcMotor motor1;
-
+        private DcMotor motor2;
         private Servo wrist1 = null; // First wrist servo
         private Servo wrist2 = null;
         private DcMotorSimple wrist3 = null;
@@ -203,6 +187,7 @@ public class BlueSideTestAuto extends LinearOpMode {
             telemetry = telemetryIn;
 
             motor1.setDirection(DcMotor.Direction.FORWARD);
+            motor2.setDirection(DcMotor.Direction.REVERSE);
 
         }
 
@@ -330,51 +315,6 @@ public class BlueSideTestAuto extends LinearOpMode {
         public void setTargetPosition(int position) {
             target_position = position;
         }
-        public class MoveElbowToAction implements Action {
-            private final int targetPosition;
-
-            public MoveElbowToAction(int position) {
-                this.targetPosition = position;
-            }
-
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                motor1.setTargetPosition(targetPosition);
-                motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                motor1.setPower(0.5);
-
-                if (!motor1.isBusy()) {
-                    motor1.setPower(0);
-                    motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    return true; // Action is complete
-                }
-
-                return false; // Action is still running
-            }
-        }
-
-        public Action moveElbowToAction(int position) {
-            return new MoveElbowToAction(position);
-        }
-
-        // Additional example: Smooth movement action
-        public class SmoothMoveElbowAction implements Action {
-            private final int targetPosition;
-            private boolean completed = false;
-
-            public SmoothMoveElbowAction(int position) {
-                this.targetPosition = position;
-            }
-
-            @Override
-            public boolean run(@NonNull TelemetryPacket packet) {
-                if (!completed) {
-                    moveElbowSmoothly(targetPosition);
-                    completed = true;
-                }
-                return completed;
-            }
-        }
     }
     public class Bucket {
         private Servo bucketServo;      //may be DCmotorSimple
@@ -426,6 +366,10 @@ public class BlueSideTestAuto extends LinearOpMode {
         // Load the model in the constructor or initialization function
         public SampleDetection(AssetManager assetManager, String modelPath) {
             SampleDetection detection = new SampleDetection(assetManager, "model.tflite");
+            int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                    "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+            webcam = OpenCvCameraFactory.getInstance().createWebcam(
+                    hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
 
         }
         public TensorImage preprocessImage(Bitmap bitmap) {
@@ -440,7 +384,37 @@ public class BlueSideTestAuto extends LinearOpMode {
                     .build();
             return imageProcessor.process(tensorImage);
         }
+       /** public int detectSampleLocation(SampleDetection detection) {
+            // Capture an image from the webcam
+            Bitmap bitmap = captureImageFromCamera();
+            if (bitmap == null) {
+                telemetry.addData("Detection", "Failed to capture image");
+                telemetry.update();
+                return -1; // Error code for failed capture
+            }
 
+            // Preprocess the image
+            TensorImage inputImage = detection.preprocessImage(bitmap);
+
+            // Model input/output setup (assumes single output with 3 locations)
+            float[][] outputLocations = new float[1][3]; // Adjust based on model output
+
+            // Run the inference
+            detection.tflite.run(inputImage.getBuffer(), outputLocations);
+
+            // Process output to determine sample location
+            float left = outputLocations[0][0];
+            float center = outputLocations[0][1];
+            float right = outputLocations[0][2];
+
+            if (left > center && left > right) {
+                return 0; // Left position
+            } else if (center > left && center > right) {
+                return 1; // Center position
+            } else {
+                return 2; // Right position
+            }
+        }
 
         // Close the interpreter when done
         public void close() {
@@ -448,50 +422,53 @@ public class BlueSideTestAuto extends LinearOpMode {
                 tflite.close();
                 tflite = null;
             }
-        }
+        }**/
     }
-    public TensorImage preprocessImage(Bitmap bitmap) {
-        TensorImage tensorImage = new TensorImage(DataType.UINT8);
-
-        // Load image into TensorImage
-        tensorImage.load(bitmap);
-
-        // Resize to model input size, e.g., 300x300
-        ImageProcessor imageProcessor = new ImageProcessor.Builder()
-                .add(new ResizeOp(300, 300, ResizeOp.ResizeMethod.BILINEAR))
-                .build();
-        return imageProcessor.process(tensorImage);
-    }
-
 
 
 
 
     @Override
     public void runOpMode() {
-        Pose2d initialPose = new Pose2d(24, 0, Math.toRadians(180));
+        Pose2d initialPose = new Pose2d(24, 0, 0);
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
-
-        //Claw wrist3 = new Claw(hardwareMap);
+        Claw wrist3 = new Claw(hardwareMap);
         SCLift scLift = new SCLift(hardwareMap);
         Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-
+        SampleDetection detection = new SampleDetection(hardwareMap.appContext.getAssets(), "model.tflite");
 
 
         //Bucket bucket = new Bucket(hardwareMap);
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        webcam = OpenCvCameraFactory.getInstance().createWebcam(
+                hardwareMap.get(WebcamName.class, "Webcam1"), cameraMonitorViewId);
+        try {
+            //tfLite = new Interpreter(loadModelFile());
+        } catch (Exception e) {
+            telemetry.addData("Error", "Failed to load model");
+            telemetry.update();
+            return;
+        }
 
 
 
+        while (opModeIsActive()) {
+            arm.update(); // consistently update PID control
+            telemetry.update(); // update telemetry in each loop cycle
+            //int sampleLocation = detectSampleLocation(detection);  // Detect sample position
 
 
-
+            telemetry.update();
+            sleep(10);
+        }
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(4, 4));
-
-        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(0)))
-                .strafeTo(new Vector2d(0, 0));
-                //.turn(Math.toRadians(45));
+                .strafeTo(new Vector2d(4, 4))
+                .turn(Math.toRadians(45+180));
+        TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
+                .strafeTo(new Vector2d(10, 14))
+                .turn(Math.toRadians(45));
         TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
                 .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
@@ -510,7 +487,7 @@ public class BlueSideTestAuto extends LinearOpMode {
 
 
         // actions that need to happen on init; for instance, a claw tightening.
-        //wrist3.closeClaw();
+        wrist3.closeClaw();
         //bucket.UntiltBucket();
 
         telemetry.update();
@@ -523,14 +500,20 @@ public class BlueSideTestAuto extends LinearOpMode {
         arm.update();
         Actions.runBlocking(
                 new SequentialAction(
-                        trajectoryActionChosen,
+                        new ParallelAction(
+                                scLift.moveToPositionAction(3100),
+                                trajectoryActionChosen
+                        ),
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),
-                        tab2.build()
+                        tab2.build(),
                         //put the arm in the right positon
-                        //wrist3.closeClaw(),
-                        //trajectoryActionCloseOut
+                        wrist3.closeClaw(),
+                        trajectoryActionCloseOut
                 )
         );
     }
 }
+
+
+

@@ -1,6 +1,5 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes;
 
-import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -8,13 +7,11 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.Classes.Arm;
+import org.firstinspires.ftc.teamcode.Classes.Arm2;
 
-@TeleOp(name = "Single Driver improved LinearOp", group = "Linear Opmode")
-public class BasicOpMode_Linear4 extends LinearOpMode {
+@TeleOp(name = "DoubleMode FINAL LinearOp", group = "Linear Opmode")
+public class BasicOpMode_Linear3 extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
@@ -27,22 +24,15 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
     private DcMotor SC1;
     private DcMotor SC2;
     private Servo wrist1 = null; // First wrist servo
-
+    private Servo wrist2 = null;
     private DcMotorSimple wrist3 = null;
     private Arm2 arm;
-    private BNO055IMU imu;
-    private Orientation lastAngles = new Orientation();  // Orientation data from IMU
-    private double initYaw;  // Initial yaw from IMU at the start
-    private boolean isFieldCentric = true;  // Field-Centric control mode
-    private double powerFL, powerFR, powerBL, powerBR;  // Motor powers
-
 
     private double sens = 0.7;
     private int scissorLiftPosition = 0;
     private int mode = 0; // 0: Drive, 1: Arm Control, 2: Scissor Lift
     public double wristPosition = 0;
     private double wristPower = 0;
-    private boolean clawOpen = false;
 
     @Override
     public void runOpMode() {
@@ -53,7 +43,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
 
         waitForStart();
         runtime.reset();
-        wristPosition = (wrist1.getPosition() ) ;
+        wristPosition = (wrist1.getPosition() + wrist2.getPosition()) / 2;
         while (opModeIsActive()) {
             // Toggle between modes with gamepad1.y
             if (gamepad1.y) {
@@ -61,30 +51,6 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                 sleep(200); // Debounce delay
                 telemetry.addData("Mode", mode == 0 ? "Drive" : "Arm Control");
                 telemetry.update();
-            }
-            if (gamepad1.b && (clawOpen)) {
-                clawOpen=false;
-                wrist3.setPower(-.5); // Set motor power based on joystick input
-                sleep(40);
-            }
-            if (gamepad1.b && (!clawOpen)) {
-                clawOpen=true;
-                wrist3.setPower(.5); // Set motor power based on joystick input
-                sleep(40);
-            }
-            if (gamepad1.right_bumper) {
-                // Move wrist up (adjust the position as needed)
-                wristPosition = wrist1.getPosition();
-                wristPosition += .05;
-                wrist1.setPosition(wristPosition);
-                sleep(50);
-            } else if (gamepad1.left_bumper) {
-                // Move wrist down (adjust the position as needed)
-                wristPosition = wrist1.getPosition();
-                wristPosition -= .05;
-                wrist1.setPosition(wristPosition);
-
-                sleep(50);
             }
 
             switch (mode) {
@@ -97,7 +63,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                     telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
                     telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
                     telemetry.addData("Wrist1 Position", wrist1.getPosition());
-
+                    telemetry.addData("Wrist2 Position", wrist2.getPosition());
                     telemetry.update();
                     break;
                 case 1: // Arm Control mode (includes scissor lift and wrist control)
@@ -109,7 +75,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
                     telemetry.addData("Scissor Lift Position SC1", SC1.getCurrentPosition());
                     telemetry.addData("Scissor Lift Position SC2", SC2.getCurrentPosition());
                     telemetry.addData("Wrist1 Position", wrist1.getPosition());
-
+                    telemetry.addData("Wrist2 Position", wrist2.getPosition());
                     telemetry.update();
                     break;
             }
@@ -129,6 +95,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         SC1 = hardwareMap.get(DcMotor.class, "Scissor1");
         SC2 = hardwareMap.get(DcMotor.class, "Scissor2");
         wrist1 = hardwareMap.get(Servo.class, "wrist1");
+        wrist2 = hardwareMap.get(Servo.class, "wrist2");
         wrist3 = hardwareMap.get(DcMotorSimple.class, "wrist3");
 
         // Initialize motors
@@ -138,8 +105,8 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         BackLeftMotor.setDirection(DcMotor.Direction.REVERSE);
         armMotor1.setDirection(DcMotor.Direction.FORWARD);
         armMotor2.setDirection(DcMotor.Direction.REVERSE);
-        wrist1.setDirection(Servo.Direction.FORWARD);
-
+        wrist1.setDirection(Servo.Direction.REVERSE);
+        wrist2.setDirection(Servo.Direction.FORWARD);
         SC1.setDirection(DcMotor.Direction.FORWARD);
         SC2.setDirection(DcMotor.Direction.REVERSE);
 
@@ -154,22 +121,6 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         SC2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         arm = new Arm2(hardwareMap, runtime, telemetry);
-
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
-        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
-        parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
-        parameters.loggingEnabled = false;
-        imu.initialize(parameters);
-
-        // Make sure the IMU is calibrated before proceeding
-        while (!isStopRequested() && !imu.isGyroCalibrated()) {
-            sleep(50);
-            idle();
-        }
-
-        // Get the initial heading for field-centric calculations
-        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-        initYaw = lastAngles.firstAngle;
     }
 
     private void driveMode() {
@@ -191,7 +142,7 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
         if (gamepad1.dpad_up) {
             scissorLiftPosition += 100;
 
-            scissorLiftPosition = Math.max(-3100, Math.min(scissorLiftPosition, 3100));
+            scissorLiftPosition = Math.max(0, Math.min(scissorLiftPosition, 3100));
 
             SC1.setTargetPosition(scissorLiftPosition);
             SC2.setTargetPosition(scissorLiftPosition);
@@ -220,6 +171,9 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
 
     private void armControlMode() {
         arm.update();
+
+        wristPower = wristPower + gamepad1.right_stick_x;
+        wrist3.setPower(wristPower); // Set motor power based on joystick input
         // Example arm control code
         if (gamepad1.dpad_down) {
             arm.moveElbow(-5);
@@ -237,8 +191,21 @@ public class BasicOpMode_Linear4 extends LinearOpMode {
             arm.moveElbowTo(850);
             sleep(10);
         }
-
-
+        if (gamepad1.right_bumper) {
+            // Move wrist up (adjust the position as needed)
+            wristPosition = wrist1.getPosition();
+            wristPosition += .05;
+            wrist1.setPosition(wristPosition);
+            wrist2.setPosition(wristPosition);
+            sleep(50);
+        } else if (gamepad1.left_bumper) {
+            // Move wrist down (adjust the position as needed)
+            wristPosition = wrist1.getPosition();
+            wristPosition -= .05;
+            wrist1.setPosition(wristPosition);
+            wrist2.setPosition(wristPosition);
+            sleep(50);
+        }
         if (gamepad1.left_stick_y != 0) {
             scissorLiftPosition += (int)(gamepad1.left_stick_y * 50);
 
