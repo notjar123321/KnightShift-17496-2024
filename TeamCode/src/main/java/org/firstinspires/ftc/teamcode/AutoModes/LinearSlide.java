@@ -1,14 +1,10 @@
-package org.firstinspires.ftc.teamcode;
-
-import static android.os.SystemClock.sleep;
+package org.firstinspires.ftc.teamcode.AutoModes;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -33,10 +29,11 @@ public class LinearSlide {
         timer = elapsedTime;
         telemetry = telemetryIn;
 
-        LS1.setDirection(DcMotor.Direction.REVERSE);
+        LS1.setDirection(DcMotor.Direction.FORWARD);
+        LS2.setDirection(DcMotorSimple.Direction.REVERSE);
         LS1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         LS1.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
-        LS2.setDirection(DcMotor.Direction.FORWARD);
+
         LS2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         LS2.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
         //LS1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -69,9 +66,14 @@ public class LinearSlide {
 
         target_position += ticks;
         LS1.setTargetPosition(target_position);
+        LS2.setTargetPosition(target_position);
+
 
 
         LS1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        LS2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+
         double maxPower = 1; // Maximum allowable power
 
 
@@ -81,6 +83,8 @@ public class LinearSlide {
 
 
             LS1.setPower(maxPower);
+            LS2.setPower(maxPower*.75);
+            telemetry.update();
 
         }
     }

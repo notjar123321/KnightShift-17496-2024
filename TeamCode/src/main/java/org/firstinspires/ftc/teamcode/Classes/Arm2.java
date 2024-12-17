@@ -18,7 +18,7 @@ public class Arm2 {
 
     private Servo wrist1 = null; // First wrist servo
     private Servo wrist2 = null;
-    private DcMotorSimple bucket = null;
+
 
     private ElapsedTime timer;
     private Telemetry telemetry;
@@ -40,11 +40,9 @@ public class Arm2 {
 
     public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
         target_position=0;
-        motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
+        motor1 = hardwareMap.get(DcMotor.class, "INTAKE");
 
-        wrist1 = hardwareMap.get(Servo.class, "wrist1");
 
-        bucket = hardwareMap.get(DcMotorSimple.class, "wrist3");
         timer = elapsedTime;
         telemetry = telemetryIn;
 
@@ -130,14 +128,9 @@ public class Arm2 {
 
 
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        double currentPower=.7;
+        double maxPower = 1; // Maximum allowable power
 
-
-        double currentPower = 0.4; // Initial low power
-        double maxPower = 0.7; // Maximum allowable power
-        if (motor1.getCurrentPosition() < 200){
-            currentPower = 0.1; // Initial low power
-            maxPower = 0.3; // Maximum allowable power
-        }
 
 
         while (motor1.isBusy() ) {
@@ -145,9 +138,9 @@ public class Arm2 {
             int distanceToTarget = Math.abs(target_position - currentPos);
 
             // Gradual power increase
-            currentPower = Range.clip(currentPower + 0.01, 0.1, maxPower);
-            if (distanceToTarget < 50) {
-                currentPower *= 0.5; // Slow down near target
+            currentPower = maxPower;
+            if (distanceToTarget < 10) {
+                currentPower *= 0.1; // Slow down near target
             }
 
             motor1.setPower(currentPower);

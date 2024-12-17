@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes;
 
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
@@ -19,6 +19,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
+import org.firstinspires.ftc.teamcode.Classes.Arm;
+import org.firstinspires.ftc.teamcode.Classes.Arm2;
 
 @TeleOp(name = "TwoDriver LinearOpMode", group = "Linear Opmode")
 public class TwoDriver_LinearOpMode extends LinearOpMode {
@@ -142,7 +144,7 @@ public class TwoDriver_LinearOpMode extends LinearOpMode {
                 wrist1.setPosition(wristPosition);
 
                 nonBlockingDelay(50);
-            } else if (gamepad2.left_bumper) {
+            } if (gamepad2.left_bumper) {
                 // Move wrist down (adjust the position as needed)
                 wristPosition = Range.clip(wrist1.getPosition(), 0, 1);
                 wristPosition -= .1;

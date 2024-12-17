@@ -5,20 +5,18 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.AutoModes.LinearSlide;
 
-@TeleOp(name = "Linear Slide test", group = "Linear Opmode")
-public class TwoDriverFinal extends LinearOpMode {
+@TeleOp(name = "Little Kid Drive Mode", group = "Linear Opmode")
+public class BabyMode extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
-
-
     private DcMotor ls1 = null; // First motor for arm rotation
+    private DcMotor ls2 = null;
     private double y;
     private double x;
     private double rx;
-    private double sens = 1;
+    private double sens = .5;
     private DcMotor FrontLeftMotor=null;
     private DcMotor FrontRightMotor=null;
     private DcMotor BackLeftMotor=null;
@@ -31,69 +29,58 @@ public class TwoDriverFinal extends LinearOpMode {
         initializeHardware();
 
         waitForStart();
+
         runtime.reset();
-        LinearSlide LS1 = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
 
         while (opModeIsActive()) {
-            y = -gamepad1.left_stick_y;
-            x = gamepad1.left_stick_x;
-            rx = gamepad1.right_stick_x;
+            //drive with gamepad1
+            double leftPower;
+            double rightPower;
 
+            // POV Mode control
+            double y = gamepad1.left_stick_y; // Forward/backward (left stick vertical)
+            double x = -gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
+            double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
+
+            // Calculate the largest possible input sum to scale the powers properly
             double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+
+            // Calculate motor powers
             double frontLeftPower = (y + x + rx) / denominator;
             double backLeftPower = (y - x + rx) / denominator;
             double frontRightPower = (y - x - rx) / denominator;
             double backRightPower = (y + x - rx) / denominator;
 
-            FrontLeftMotor.setPower(frontLeftPower * sens);
-            BackLeftMotor.setPower(backLeftPower * sens);
+            // Apply power scaling factor
+            FrontLeftMotor.setPower(-frontLeftPower * sens);
+            BackLeftMotor.setPower(-backLeftPower * sens);
             FrontRightMotor.setPower(frontRightPower * sens);
             BackRightMotor.setPower(backRightPower * sens);
 
 
-            if (gamepad2.dpad_right) {
-                nonBlockingDelay(10);
-                LS1.moveLSTo(1500);
-            }
-            if (gamepad1.dpad_down) {
-                nonBlockingDelay(10);
-                LS1.moveLSTo(0);
-            }
-            if (gamepad1.dpad_up) {
-                nonBlockingDelay(10);
-                LS1.moveLSTo(3000);
-            }
 
-
-            telemetry.update();
-            telemetry.addData("LS1 position", ls1.getCurrentPosition());
         }
     }
+
+
     private void nonBlockingDelay(double milliseconds) {
         ElapsedTime delayTimer = new ElapsedTime();
         delayTimer.reset();
         while (opModeIsActive() && delayTimer.milliseconds() < milliseconds) {
-            telemetry.addData("Waiting", "Time remaining: %.1f ms", milliseconds - delayTimer.milliseconds());
             telemetry.update();
         }
     }
-
     private void initializeHardware() {
-
-        ls1 = hardwareMap.get(DcMotor.class, "LS1");
-
-        // Initialize motors
-        ls1.setDirection(DcMotor.Direction.FORWARD);
-
-        // Set up scissor lift motors with encoders
-        ls1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        ls1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        LinearSlide LS1 = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
         BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");
         FrontRightMotor = hardwareMap.get(DcMotor.class, "FRM");
         BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
+        FrontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        BackLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        FrontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        BackRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
 
 
     }
