@@ -20,12 +20,15 @@ public class Jan5th extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
-    private DcMotor ls1 = null; // First motor for arm rotation
-    private DcMotor ls2 = null;
+    private DcMotor ls1 = null; // First Linear Slide
+    private DcMotor ls2 = null; //Second Linear Slide
+
+    //Drive input variables
     private double y;
     private double x;
     private double rx;
-    private double sens = 1;
+
+    private double sens = 1; //Drive Sensitivity
     boolean isClawOpen = false;
     boolean isOutputClawOpen = false;
     private DcMotor FrontLeftMotor=null;
@@ -62,10 +65,6 @@ public class Jan5th extends LinearOpMode {
 
         while (opModeIsActive()) {
             //drive with gamepad1
-            double leftPower;
-            double rightPower;
-
-            // POV Mode control
             double y = gamepad1.left_stick_y; // Forward/backward (left stick vertical)
             double x = -gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
             double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
@@ -101,6 +100,12 @@ public class Jan5th extends LinearOpMode {
             if(gamepad2.left_stick_y!=0){
                 intake.moveElbow((int) (gamepad2.left_stick_y*30));
             }
+            if(gamepad2.right_stick_y!=0){
+                OutputArmServo.setPower(gamepad2.right_stick_y);
+            }
+            else{
+                OutputArmServo.setPower(0);
+            }
             if (gamepad2.x) {
                 isClawOpen = !isClawOpen; // Toggle state
                 if (isClawOpen) {
@@ -120,33 +125,16 @@ public class Jan5th extends LinearOpMode {
             }**/
             if (gamepad2.right_bumper) {
                 InputWristPosition=INPUTLEFT.getPosition();
-                INPUTLEFT.setPosition(InputWristPosition+.1);
-                INPUTRIGHT.setPosition(InputWristPosition+.1);
+                INPUTLEFT.setPosition(Range.clip(InputWristPosition+.1, 0 ,1));
+                INPUTRIGHT.setPosition(Range.clip(InputWristPosition+.1, 0 ,1));
                 nonBlockingDelay(50);
             } if (gamepad2.left_bumper) {
                 InputWristPosition=INPUTLEFT.getPosition();
-                INPUTLEFT.setPosition(InputWristPosition-.1);
-                INPUTRIGHT.setPosition(InputWristPosition-.1);
+                INPUTLEFT.setPosition(Range.clip(InputWristPosition-.1, 0 ,1));
+                INPUTRIGHT.setPosition(Range.clip(InputWristPosition-.1, 0 ,1));
                 nonBlockingDelay(50);
             }
-
-
-
-
-
-                telemetry.addData("Right stick y", gamepad2.right_stick_y);
-            if(gamepad2.right_stick_y!=0){
-                OutputArmServo.setPower(gamepad2.right_stick_y);
-            }
-            else{
-                OutputArmServo.setPower(0);
-            }
-
-
-            //Claw Commands
-            
-
-
+            telemetry.addData("Right stick y", gamepad2.right_stick_y);
             telemetry.addData("LS1 position", ls1.getCurrentPosition());
             telemetry.addData("LS1 position", ls2.getCurrentPosition());
             telemetry.addData("Intake Position", IntakeMotor.getCurrentPosition());
