@@ -1,18 +1,19 @@
 package org.firstinspires.ftc.teamcode.Classes;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-
+@Config
 public class Claw {
     // Servo instances
     private Servo leftServo;
     private Servo rightServo;
 
     // Positions for open and closed states
-    private static final double LEFT_SERVO_OPEN = 0.0;
-    private static final double LEFT_SERVO_CLOSED = 1.0;
-    private static final double RIGHT_SERVO_OPEN = 1.0;
-    private static final double RIGHT_SERVO_CLOSED = 0.0;
+    public static double LEFT_SERVO_OPEN = 0.0;
+    public static double LEFT_SERVO_CLOSED = 1.0;
+    public static double RIGHT_SERVO_OPEN = 1.0;
+    public static double RIGHT_SERVO_CLOSED = 0.0;
 
     // Constructor
     public Claw(HardwareMap hardwareMap, String leftServoName, String rightServoName) {

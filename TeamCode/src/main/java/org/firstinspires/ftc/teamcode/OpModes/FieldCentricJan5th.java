@@ -1,25 +1,29 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes;
 
-import com.acmerobotics.dashboard.config.Config;
+import static org.firstinspires.ftc.teamcode.Classes.MecanumDrive.PARAMS;
+
+import com.qualcomm.hardware.bosch.BHI260IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
 import org.firstinspires.ftc.teamcode.Classes.Claw;
+import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 
-@Config
-@TeleOp(name = "Jan5th", group = "Linear Opmode")
-public class Jan5th extends LinearOpMode {
+@TeleOp(name = "Jan5th-Fieldcentric test", group = "Linear Opmode")
+public class FieldCentricJan5th extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
-    private DcMotor ls1 = null; // First motor for arm rotation
+    private DcMotor ls1 = null;
     private DcMotor ls2 = null;
     private double y;
     private double x;
@@ -27,12 +31,12 @@ public class Jan5th extends LinearOpMode {
     private double sens = 1;
     boolean isClawOpen = false;
     boolean isOutputClawOpen = false;
-    private DcMotor FrontLeftMotor=null;
-    private DcMotor FrontRightMotor=null;
-    private DcMotor BackLeftMotor=null;
-    private DcMotor BackRightMotor=null;
-    private DcMotor IntakeMotor=null;
-    private Servo OutputArmServo=null;
+    private DcMotor FrontLeftMotor = null;
+    private DcMotor FrontRightMotor = null;
+    private DcMotor BackLeftMotor = null;
+    private DcMotor BackRightMotor = null;
+    private DcMotor IntakeMotor = null;
+    private Servo OutputArmServo = null;
     private Servo INPUTLEFT = null;
     private Servo INPUTRIGHT = null;
     private Servo CLAWLEFT = null;
@@ -40,9 +44,6 @@ public class Jan5th extends LinearOpMode {
     private DcMotorSimple OutputArmWrist = null;
     private double InputWristPosition;
     private double OutputArmPosition;
-    private long lastPressedTimeX = 0;
-    private long lastPressedTimeBumper = 0;
-
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -50,41 +51,45 @@ public class Jan5th extends LinearOpMode {
         telemetry.update();
 
         initializeHardware();
+        IMU imu = hardwareMap.get(IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                PARAMS.logoFacingDirection, PARAMS.usbFacingDirection));
+
+        imu.initialize(parameters);
 
         waitForStart();
-
         runtime.reset();
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
         Claw intakeclaw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
-        //Claw outputclaw = new Claw(hardwareMap, "OUTPUTCLAWLEFT", "OUTPUTCLAWRIGHT"); add when added
-
 
         while (opModeIsActive()) {
-            //drive with gamepad1
-            telemetry.update();
+            // Get joystick inputs
+            double y = -gamepad1.left_stick_y; // Inverted for correct direction
+            double x = -gamepad1.left_stick_x;
+            double rx = gamepad1.right_stick_x;
 
-            // POV Mode control
-            double y = gamepad1.left_stick_y; // Forward/backward (left stick vertical)
-            double x = -gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
-            double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
+            // Get the robot's heading
+            double robotAngle = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
-            // Calculate the largest possible input sum to scale the powers properly
-            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+            // Adjust joystick inputs for field-centric control
+            double adjustedX = x * Math.cos(robotAngle) - y * Math.sin(robotAngle);
+            double adjustedY = x * Math.sin(robotAngle) + y * Math.cos(robotAngle);
 
             // Calculate motor powers
-            double frontLeftPower = (y + x + rx) / denominator;
-            double backLeftPower = (y - x + rx) / denominator;
-            double frontRightPower = (y - x - rx) / denominator;
-            double backRightPower = (y + x - rx) / denominator;
+            double denominator = Math.max(Math.abs(adjustedY) + Math.abs(adjustedX) + Math.abs(rx), 1);
+            double frontLeftPower = (adjustedY + adjustedX + rx) / denominator;
+            double backLeftPower = (adjustedY - adjustedX + rx) / denominator;
+            double frontRightPower = (adjustedY - adjustedX - rx) / denominator;
+            double backRightPower = (adjustedY + adjustedX - rx) / denominator;
 
-            // Apply power scaling factor
+            // Set motor powers
             FrontLeftMotor.setPower(-frontLeftPower * sens);
             BackLeftMotor.setPower(-backLeftPower * sens);
             FrontRightMotor.setPower(frontRightPower * sens);
             BackRightMotor.setPower(backRightPower * sens);
 
-            //Linear Slide Commands(Dpad)
+            // Linear Slide Commands (Dpad)
             if (gamepad2.dpad_left) {
                 nonBlockingDelay(10);
                 LS.moveLSTo(1500);
@@ -97,65 +102,44 @@ public class Jan5th extends LinearOpMode {
                 nonBlockingDelay(10);
                 LS.moveLSTo(3100);
             }
-            if(gamepad2.right_trigger!=0){
-                INPUTLEFT.setPosition(0);
-                INPUTRIGHT.setPosition(0);
-                intake.moveElbowTo(0);
-
+            if (gamepad2.left_stick_y != 0) {
+                intake.moveElbow((int) (gamepad2.left_stick_y * 30));
             }
-            if(gamepad2.left_trigger!=0){
-                intake.moveElbowTo(590);
-            }
-            if(gamepad2.left_stick_y!=0){
-                intake.moveElbow((int) (gamepad2.left_stick_y*30));
-            }
-            if(gamepad2.right_stick_y!=0){
-                OutputArmPosition=OutputArmServo.getPosition();
-                OutputArmServo.setPosition(OutputArmPosition+.005*gamepad2.right_stick_y);
+            if (gamepad2.right_stick_y != 0) {
+                OutputArmPosition = OutputArmServo.getPosition();
+                OutputArmServo.setPosition(OutputArmPosition + .005 * gamepad2.right_stick_y);
                 nonBlockingDelay(10);
-            }
-            else{
-                OutputArmPosition=OutputArmServo.getPosition();
+            } else {
+                OutputArmPosition = OutputArmServo.getPosition();
                 OutputArmServo.setPosition(OutputArmPosition);
                 nonBlockingDelay(10);
             }
-            if (gamepad2.x && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeX)) {
-                lastPressedTimeX = (long) runtime.milliseconds();
+            if (gamepad2.x) {
                 isClawOpen = !isClawOpen; // Toggle state
                 if (isClawOpen) {
                     intakeclaw.open(); // Open claw
                 } else {
                     intakeclaw.close(); // Close claw
                 }
+                sleep(60);
             }
 
-            /**if (gamepad2.y) {
-                isOutputClawOpen = !isOutputClawOpen; // Toggle state
-                if (isOutputClawOpen) {
-                    outputclaw.open(); // Open claw
-                } else {
-                    outputclaw.close(); // Close claw
-                }
-                sleep(60);
-            }**/
-            // Input Wrist Movement with Debounce for Bumper Buttons
-            if (gamepad2.right_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
-                lastPressedTimeBumper = (long) runtime.milliseconds();
+            if (gamepad2.right_bumper) {
                 InputWristPosition = INPUTLEFT.getPosition();
-                INPUTLEFT.setPosition(Range.clip(InputWristPosition + 0.1, 0, 1));
-                INPUTRIGHT.setPosition(Range.clip(InputWristPosition + 0.1, 0, 1));
+                INPUTLEFT.setPosition(Range.clip(InputWristPosition + 0.1, 0, 1)); // Clamp between 0 and 1
+                INPUTRIGHT.setPosition(Range.clip(InputWristPosition + 0.1, 0, 1)); // Clamp between 0 and 1
+                nonBlockingDelay(200);
             }
-            if (gamepad2.left_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
-                lastPressedTimeBumper = (long) runtime.milliseconds();
+            if (gamepad2.left_bumper) {
                 InputWristPosition = INPUTLEFT.getPosition();
-                INPUTLEFT.setPosition(Range.clip(InputWristPosition - 0.1, 0, 1));
-                INPUTRIGHT.setPosition(Range.clip(InputWristPosition - 0.1, 0, 1));
+                INPUTLEFT.setPosition(Range.clip(InputWristPosition - 0.1, 0, 1)); // Clamp between 0 and 1
+                INPUTRIGHT.setPosition(Range.clip(InputWristPosition - 0.1, 0, 1)); // Clamp between 0 and 1
+                nonBlockingDelay(200);
             }
-            
 
             telemetry.addData("Right stick y", gamepad2.right_stick_y);
             telemetry.addData("LS1 position", ls1.getCurrentPosition());
-            telemetry.addData("LS1 position", ls2.getCurrentPosition());
+            telemetry.addData("LS2 position", ls2.getCurrentPosition());
             telemetry.addData("Intake Position", IntakeMotor.getCurrentPosition());
             telemetry.addData("INPUTLEFT", INPUTLEFT.getPosition());
             telemetry.addData("INPUTRIGHT", INPUTRIGHT.getPosition());
@@ -163,11 +147,11 @@ public class Jan5th extends LinearOpMode {
             telemetry.addData("Claw pos 1", CLAWLEFT.getPosition());
             telemetry.addData("Claw pos 2", CLAWRIGHT.getPosition());
             telemetry.addData("Gampad2 Left Stick", gamepad2.left_stick_y);
+            telemetry.addData("angle", Math.toDegrees(robotAngle));
 
             telemetry.update();
         }
     }
-
 
     private void nonBlockingDelay(double milliseconds) {
         ElapsedTime delayTimer = new ElapsedTime();
@@ -176,8 +160,8 @@ public class Jan5th extends LinearOpMode {
             telemetry.update();
         }
     }
-    private void initializeHardware() {
 
+    private void initializeHardware() {
         ls1 = hardwareMap.get(DcMotor.class, "LS1");
         ls2 = hardwareMap.get(DcMotor.class, "LS2");
         // Initialize motors
@@ -187,7 +171,6 @@ public class Jan5th extends LinearOpMode {
         // Set up scissor lift motors with encoders
         ls1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         ls2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
 
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
@@ -200,30 +183,19 @@ public class Jan5th extends LinearOpMode {
 
         IntakeMotor = hardwareMap.get(DcMotor.class, "INTAKE");
         IntakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        IntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
+        IntakeMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        //Claws
+        // Claws
         CLAWLEFT = hardwareMap.get(Servo.class, "CLAWLEFT");
         CLAWRIGHT = hardwareMap.get(Servo.class, "CLAWRIGHT");
 
-        //wrists
+        // Wrists
         INPUTLEFT = hardwareMap.get(Servo.class, "INPUTLEFT");
-        INPUTRIGHT = hardwareMap.get(Servo.class, "OUTPUTRIGHT"); //remember to change in config
+        INPUTRIGHT = hardwareMap.get(Servo.class, "OUTPUTRIGHT"); // Remember to change in config
         INPUTRIGHT.setDirection(Servo.Direction.REVERSE);
 
         OutputArmServo = hardwareMap.get(Servo.class, "OUTPUTARM");
         OutputArmWrist = hardwareMap.get(DcMotorSimple.class, "OUTPUTWRIST");
         IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-
-
-
-    }
-    private static final long DEBOUNCE_DELAY = 200; // 200 milliseconds
-    private boolean isButtonPressed(long currentTime, long lastPressedTime) {
-        if (currentTime - lastPressedTime > DEBOUNCE_DELAY) {
-            return true;
-        }
-        return false;
     }
 }

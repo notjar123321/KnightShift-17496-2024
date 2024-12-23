@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.AutoModes.LinearSlide;
+import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 
 @TeleOp(name = "Linear Slide test", group = "Linear Opmode")
 public class TwoDriverFinal extends LinearOpMode {

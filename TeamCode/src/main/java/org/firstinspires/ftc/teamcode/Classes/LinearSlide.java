@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.AutoModes;
+package org.firstinspires.ftc.teamcode.Classes;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -80,8 +80,6 @@ public class LinearSlide {
         while (LS1.isBusy()) {
             int currentPos = (LS1.getCurrentPosition());
             int distanceToTarget = Math.abs(target_position - currentPos);
-
-
             LS1.setPower(maxPower);
             LS2.setPower(maxPower*.75);
             telemetry.update();

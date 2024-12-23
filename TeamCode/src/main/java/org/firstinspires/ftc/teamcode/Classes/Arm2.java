@@ -49,19 +49,27 @@ public class Arm2 {
         motor1.setDirection(DcMotor.Direction.REVERSE);
         motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
+        wrist1 = hardwareMap.get(Servo.class, "INPUTLEFT");
+        wrist2 = hardwareMap.get(Servo.class, "OUTPUTRIGHT"); //remember to change in config
+        wrist2.setDirection(Servo.Direction.REVERSE);
 
 
 
     }
 
     public void update() {
-        /**if(motor1.getCurrentPosition() < 300) {
-            wrist1.setPosition(.95);
-            wrist2.setPosition(.95);
-        }**/
+
         // Get the current position of the arm
         double pos = (motor1.getCurrentPosition());
         double error = target_position - pos;
+        if(pos<0)
+        {
+            target_position=0;
+        }
+        if(pos<100){
+            wrist1.setPosition(0);
+            wrist2.setPosition(0);
+        }
 
         // Time elapsed for PID calculation
         double currentTime = timer.seconds();
@@ -94,41 +102,34 @@ public class Arm2 {
 
     public void moveElbowTo(int ticks) {
         target_position = ticks;
+        target_position=Range.clip(target_position, 0, 10000);
         motor1.setTargetPosition(target_position);
 
 
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
-        double currentPower = 0.4; // Initial low power
-        double maxPower = 0.7; // Maximum allowable power
-        if (motor1.getCurrentPosition() < 200){
-            currentPower = 0.1; // Initial low power
-            maxPower = 0.2; // Maximum allowable power
-        }
+        double currentPower=1;
 
         while (motor1.isBusy()) {
             int currentPos = (motor1.getCurrentPosition());
             int distanceToTarget = Math.abs(target_position - currentPos);
-
-            // Gradual power increase
-            currentPower = Range.clip(currentPower + 0.01, 0.1, maxPower);
-            if (distanceToTarget < 50) {
-                currentPower *= 0.5; // Slow down near target
-            }
-
             motor1.setPower(currentPower);
+            if(distanceToTarget<50){
+                currentPower*=.1;
+            }
 
         }
     }
     public void moveElbow(int ticks) {
 
         target_position += ticks;
+        target_position=Range.clip(target_position, 0, 10000);
         motor1.setTargetPosition(target_position);
 
 
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        double currentPower=.7;
+        double currentPower=1;
         double maxPower = 1; // Maximum allowable power
 
 
@@ -136,49 +137,13 @@ public class Arm2 {
         while (motor1.isBusy() ) {
             int currentPos = (motor1.getCurrentPosition());
             int distanceToTarget = Math.abs(target_position - currentPos);
-
             // Gradual power increase
-            currentPower = maxPower;
-            if (distanceToTarget < 10) {
-                currentPower *= 0.1; // Slow down near target
-            }
-
             motor1.setPower(currentPower);
 
         }
     }
 
-    public void moveElbowSmoothly(int targetPosition) {
-        target_position = targetPosition;
 
-        int error = targetPosition - targetPosition;
-
-        // Calculate the number of steps for smooth movement
-        int steps = 20;
-        int stepSize = error / steps;
-        stepSize = (stepSize == 0) ? (error > 0 ? 1 : -1) : stepSize;
-
-        for (int i = 0; i < steps; i++) {
-            int partialTarget = targetPosition + stepSize * (i + 1);
-
-            // Move arm gradually towards the target
-            motor1.setTargetPosition(partialTarget);
-
-
-            motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
-            motor1.setPower(0.5);
-
-
-            // Delay to control smoothness
-            sleep(10);
-        }
-
-        // Final adjustment at lower power for precision
-        motor1.setPower(0.8);
-
-    }
 
     public void setTargetPosition(int position) {
         target_position = position;
