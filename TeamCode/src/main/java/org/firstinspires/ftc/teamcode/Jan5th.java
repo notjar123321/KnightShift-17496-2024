@@ -9,9 +9,10 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
 import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
-import org.firstinspires.ftc.teamcode.Classes.Claw;
+import org.firstinspires.ftc.teamcode.Classes.OutputClaw;
 
 @Config
 @TeleOp(name = "Jan5th", group = "Linear Opmode")
@@ -37,11 +38,13 @@ public class Jan5th extends LinearOpMode {
     private Servo INPUTRIGHT = null;
     private Servo CLAWLEFT = null;
     private Servo CLAWRIGHT = null;
-    private DcMotorSimple OutputArmWrist = null;
+    private Servo OutputArmWrist = null;
     private double InputWristPosition;
     private double OutputArmPosition;
     private long lastPressedTimeX = 0;
     private long lastPressedTimeBumper = 0;
+    private double OutputWristPosition;
+    public int intakeZero = 0;
 
 
     @Override
@@ -51,15 +54,16 @@ public class Jan5th extends LinearOpMode {
 
         initializeHardware();
 
-        waitForStart();
+
 
         runtime.reset();
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        Claw intakeclaw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
-        //Claw outputclaw = new Claw(hardwareMap, "OUTPUTCLAWLEFT", "OUTPUTCLAWRIGHT"); add when added
+        IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
 
+        intakeclaw.close();
 
+        waitForStart();
         while (opModeIsActive()) {
             //drive with gamepad1
             telemetry.update();
@@ -85,39 +89,67 @@ public class Jan5th extends LinearOpMode {
             BackRightMotor.setPower(backRightPower * sens);
 
             //Linear Slide Commands(Dpad)
-            if (gamepad2.dpad_left) {
+            if (gamepad2.dpad_left  && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
                 nonBlockingDelay(10);
                 LS.moveLSTo(1500);
             }
-            if (gamepad2.dpad_down) {
+            if (gamepad2.dpad_down  && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
                 nonBlockingDelay(10);
                 LS.moveLSTo(0);
             }
-            if (gamepad2.dpad_up) {
+            if (gamepad2.dpad_up  && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
                 nonBlockingDelay(10);
-                LS.moveLSTo(3100);
+                LS.moveLSTo(3300);
             }
-            if(gamepad2.right_trigger!=0){
+            if(gamepad2.a  && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
                 INPUTLEFT.setPosition(0);
                 INPUTRIGHT.setPosition(0);
-                intake.moveElbowTo(0);
-
+                intakeclaw.close();
+                intake.moveElbowTo(100);
+                nonBlockingDelay(20);
+                sleep(10);
             }
-            if(gamepad2.left_trigger!=0){
-                intake.moveElbowTo(590);
+            if(gamepad2.b  && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                intake.moveElbowTo(520);
+                intake.moveElbow(50);
+                nonBlockingDelay(10);
             }
             if(gamepad2.left_stick_y!=0){
-                intake.moveElbow((int) (gamepad2.left_stick_y*30));
+                intake.moveElbow((int) (gamepad2.left_stick_y*20));
             }
-            if(gamepad2.right_stick_y!=0){
-                OutputArmPosition=OutputArmServo.getPosition();
-                OutputArmServo.setPosition(OutputArmPosition+.005*gamepad2.right_stick_y);
-                nonBlockingDelay(10);
-            }
-            else{
-                OutputArmPosition=OutputArmServo.getPosition();
+            if (gamepad2.right_stick_y != 0) {
+                double delta = 0.005 * gamepad2.right_stick_y;
+                OutputArmPosition = Range.clip(OutputArmPosition + delta, 0.05, 1);
                 OutputArmServo.setPosition(OutputArmPosition);
-                nonBlockingDelay(10);
+            }
+
+            if(gamepad2.dpad_right){
+                intake.moveElbowTo(400);
+                OutputArmServo.setPosition(.2417);
+                OutputArmWrist.setPosition(.4);
+                nonBlockingDelay(1500);
+                intake.moveElbowTo(223);
+                nonBlockingDelay(1500);
+                INPUTLEFT.setPosition(Range.clip( .5, 0, 1));
+                INPUTRIGHT.setPosition(Range.clip( .5, 0, 1));
+                nonBlockingDelay(800);
+                intakeclaw.open();
+                nonBlockingDelay(500);
+                INPUTLEFT.setPosition(Range.clip( .4, 0, 1));
+                INPUTRIGHT.setPosition(Range.clip( .4, 0, 1));
+                nonBlockingDelay(300);
+                INPUTLEFT.setPosition(Range.clip( .1, 0, 1));
+                INPUTRIGHT.setPosition(Range.clip( .1, 0, 1));
+                intake.moveElbow(90);
+                LS.moveLSTo(3350);
+                nonBlockingDelay(2500);
+                OutputArmServo.setPosition(1);
+                nonBlockingDelay(1200);
+                OutputArmWrist.setPosition(.8);
+                nonBlockingDelay(300);
+                OutputArmWrist.setPosition(0);
+                nonBlockingDelay(500);
+                LS.moveLSTo(0);
             }
             if (gamepad2.x && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeX)) {
                 lastPressedTimeX = (long) runtime.milliseconds();
@@ -129,30 +161,41 @@ public class Jan5th extends LinearOpMode {
                 }
             }
 
-            /**if (gamepad2.y) {
-                isOutputClawOpen = !isOutputClawOpen; // Toggle state
-                if (isOutputClawOpen) {
-                    outputclaw.open(); // Open claw
-                } else {
-                    outputclaw.close(); // Close claw
-                }
-                sleep(60);
-            }**/
             // Input Wrist Movement with Debounce for Bumper Buttons
             if (gamepad2.right_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+                lastPressedTimeBumper = (long) runtime.milliseconds();
+                OutputWristPosition = OutputArmWrist.getPosition();
+                OutputArmWrist.setPosition(Range.clip(OutputWristPosition + 0.1, 0, 1));
+                sleep(10);
+
+            }
+            if(gamepad2.right_trigger!=0 && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                lastPressedTimeBumper = (long) runtime.milliseconds();
+                OutputWristPosition = OutputArmWrist.getPosition();
+                OutputArmWrist.setPosition(Range.clip(OutputWristPosition - 0.1, 0, 1));
+                sleep(10);
+            }
+
+
+            if (gamepad2.left_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper) ) {
                 lastPressedTimeBumper = (long) runtime.milliseconds();
                 InputWristPosition = INPUTLEFT.getPosition();
                 INPUTLEFT.setPosition(Range.clip(InputWristPosition + 0.1, 0, 1));
                 INPUTRIGHT.setPosition(Range.clip(InputWristPosition + 0.1, 0, 1));
             }
-            if (gamepad2.left_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+            if(gamepad2.left_trigger!=0 && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
                 lastPressedTimeBumper = (long) runtime.milliseconds();
                 InputWristPosition = INPUTLEFT.getPosition();
                 INPUTLEFT.setPosition(Range.clip(InputWristPosition - 0.1, 0, 1));
                 INPUTRIGHT.setPosition(Range.clip(InputWristPosition - 0.1, 0, 1));
             }
-            
 
+
+            if(gamepad1.y && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                intakeclaw.close();
+
+
+            }
             telemetry.addData("Right stick y", gamepad2.right_stick_y);
             telemetry.addData("LS1 position", ls1.getCurrentPosition());
             telemetry.addData("LS1 position", ls2.getCurrentPosition());
@@ -163,8 +206,11 @@ public class Jan5th extends LinearOpMode {
             telemetry.addData("Claw pos 1", CLAWLEFT.getPosition());
             telemetry.addData("Claw pos 2", CLAWRIGHT.getPosition());
             telemetry.addData("Gampad2 Left Stick", gamepad2.left_stick_y);
+            telemetry.addData("OutputWrist", OutputArmWrist.getPosition());
+            telemetry.addData("Input Wrist", INPUTLEFT.getPosition());
 
             telemetry.update();
+            intake.update();
         }
     }
 
@@ -191,7 +237,7 @@ public class Jan5th extends LinearOpMode {
 
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        Claw claw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
+        IntakeClaw intakeClaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
 
         FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
         BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");
@@ -206,13 +252,14 @@ public class Jan5th extends LinearOpMode {
         CLAWLEFT = hardwareMap.get(Servo.class, "CLAWLEFT");
         CLAWRIGHT = hardwareMap.get(Servo.class, "CLAWRIGHT");
 
+
         //wrists
         INPUTLEFT = hardwareMap.get(Servo.class, "INPUTLEFT");
-        INPUTRIGHT = hardwareMap.get(Servo.class, "OUTPUTRIGHT"); //remember to change in config
+        INPUTRIGHT = hardwareMap.get(Servo.class, "INPUTRIGHT"); //remember to change in config
         INPUTRIGHT.setDirection(Servo.Direction.REVERSE);
 
         OutputArmServo = hardwareMap.get(Servo.class, "OUTPUTARM");
-        OutputArmWrist = hardwareMap.get(DcMotorSimple.class, "OUTPUTWRIST");
+        OutputArmWrist = hardwareMap.get(Servo.class, "OUTPUTWRIST");
         IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
 

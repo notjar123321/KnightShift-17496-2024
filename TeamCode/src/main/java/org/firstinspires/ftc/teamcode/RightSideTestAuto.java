@@ -462,6 +462,7 @@ public class RightSideTestAuto extends LinearOpMode {
                         //bucket.tiltBucketToMaxAction(),
                         //bucket.unTiltBucketAction(),
                         tab2.build(),
+                        scLift.moveToPositionAction(30),
                         //put the arm in the right positon
                         //wrist3.closeClaw(),
                         trajectoryActionCloseOut

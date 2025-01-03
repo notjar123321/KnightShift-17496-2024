@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.OpModes;
 
 import static org.firstinspires.ftc.teamcode.Classes.MecanumDrive.PARAMS;
 
-import com.qualcomm.hardware.bosch.BHI260IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -15,7 +14,7 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
-import org.firstinspires.ftc.teamcode.Classes.Claw;
+import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
 import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 
 @TeleOp(name = "Jan5th-Fieldcentric test", group = "Linear Opmode")
@@ -61,7 +60,7 @@ public class FieldCentricJan5th extends LinearOpMode {
         runtime.reset();
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        Claw intakeclaw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
+        IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
 
         while (opModeIsActive()) {
             // Get joystick inputs
@@ -174,7 +173,7 @@ public class FieldCentricJan5th extends LinearOpMode {
 
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        Claw claw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
+        IntakeClaw intakeClaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
 
         FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
         BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");

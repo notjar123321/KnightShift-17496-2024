@@ -67,9 +67,6 @@ public class LinearSlide {
         target_position += ticks;
         LS1.setTargetPosition(target_position);
         LS2.setTargetPosition(target_position);
-
-
-
         LS1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         LS2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 

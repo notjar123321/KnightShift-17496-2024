@@ -27,13 +27,14 @@ public class Arm2 {
     private double integralSum = 0; // Integral for PID control
     private double lastError = 0; // Last error value for PID
     private double lastTime = 0; // Last time update was called
-    private double gravityCompensation = 0.00005; // Gravity compensation factor (adjust as needed)
+    private double gravityCompensation = 0.0005; // Gravity compensation factor (adjust as needed)
     private double target_velocity = .05; // Target velocity for constant velocity control
 
     // PID Constants
     private double kP = 0.01; // Proportional constant
     private double kI = 0.001; // Integral constant
     private double kD = 0.001; // Derivative constant
+    public static double reduce = .8;
 
     private double maxIntegral = .05; // Limit integral to prevent windup
     private double maxDerivative = 0.0003; // Limit derivative changes
@@ -50,7 +51,7 @@ public class Arm2 {
         motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for power control
         wrist1 = hardwareMap.get(Servo.class, "INPUTLEFT");
-        wrist2 = hardwareMap.get(Servo.class, "OUTPUTRIGHT"); //remember to change in config
+        wrist2 = hardwareMap.get(Servo.class, "INPUTRIGHT"); //remember to change in config
         wrist2.setDirection(Servo.Direction.REVERSE);
 
 
@@ -62,13 +63,8 @@ public class Arm2 {
         // Get the current position of the arm
         double pos = (motor1.getCurrentPosition());
         double error = target_position - pos;
-        if(pos<0)
-        {
-            target_position=0;
-        }
-        if(pos<100){
-            wrist1.setPosition(0);
-            wrist2.setPosition(0);
+        if(pos<0) {
+            target_position = 0;
         }
 
         // Time elapsed for PID calculation
@@ -97,29 +93,21 @@ public class Arm2 {
         // Update previous values for next loop
         lastError = error;
         lastTime = currentTime;
-        sleep(20);
+        sleep(5);
+        telemetry.update();
     }
 
     public void moveElbowTo(int ticks) {
         target_position = ticks;
         target_position=Range.clip(target_position, 0, 10000);
         motor1.setTargetPosition(target_position);
-
-
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-
+        int distanceToTarget = Math.abs(target_position - motor1.getCurrentPosition());
         double currentPower=1;
-
         while (motor1.isBusy()) {
-            int currentPos = (motor1.getCurrentPosition());
-            int distanceToTarget = Math.abs(target_position - currentPos);
             motor1.setPower(currentPower);
-            if(distanceToTarget<50){
-                currentPower*=.1;
-            }
-
         }
+        telemetry.update();
     }
     public void moveElbow(int ticks) {
 

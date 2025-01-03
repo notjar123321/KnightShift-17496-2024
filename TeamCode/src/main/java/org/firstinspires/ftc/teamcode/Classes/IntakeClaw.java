@@ -4,19 +4,19 @@ import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 @Config
-public class Claw {
+public class IntakeClaw {
     // Servo instances
     private Servo leftServo;
     private Servo rightServo;
 
     // Positions for open and closed states
-    public static double LEFT_SERVO_OPEN = 0.0;
-    public static double LEFT_SERVO_CLOSED = 1.0;
-    public static double RIGHT_SERVO_OPEN = 1.0;
-    public static double RIGHT_SERVO_CLOSED = 0.0;
+    public static double LEFT_SERVO_OPEN = 0.5;
+    public static double LEFT_SERVO_CLOSED = 0.98;
+    public static double RIGHT_SERVO_OPEN = 0.5;
+    public static double RIGHT_SERVO_CLOSED = 0.02;
 
     // Constructor
-    public Claw(HardwareMap hardwareMap, String leftServoName, String rightServoName) {
+    public IntakeClaw(HardwareMap hardwareMap, String leftServoName, String rightServoName) {
         leftServo = hardwareMap.get(Servo.class, leftServoName);
         rightServo = hardwareMap.get(Servo.class, rightServoName);
     }

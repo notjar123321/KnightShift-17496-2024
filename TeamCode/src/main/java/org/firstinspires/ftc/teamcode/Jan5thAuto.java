@@ -1,9 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
+import static android.os.SystemClock.sleep;
+
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 
+import androidx.annotation.NonNull;
+
 import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
@@ -20,7 +25,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.Classes.Arm2;
+import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
+import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 import org.firstinspires.ftc.teamcode.Classes.MecanumDrive;
+import org.firstinspires.ftc.teamcode.Classes.OutputClaw;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -46,7 +55,13 @@ import java.util.List;
 @Autonomous(name = "Jan5thAuto", group = "Autonomous")
 public class Jan5thAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
-
+    private void nonBlockingDelay(double milliseconds) {
+        ElapsedTime delayTimer = new ElapsedTime();
+        delayTimer.reset();
+        while (opModeIsActive() && delayTimer.milliseconds() < milliseconds) {
+            telemetry.update();
+        }
+    }
     public class Claw {
         // Servo instances
         private Servo leftServo;
@@ -81,27 +96,64 @@ public class Jan5thAuto extends LinearOpMode {
             leftServo.setPosition(leftPosition);
             rightServo.setPosition(rightPosition);
         }
+
+        // Action to open the claw
+        public class OpenAction implements Action {
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                leftServo.setPosition(LEFT_SERVO_OPEN);
+                rightServo.setPosition(RIGHT_SERVO_OPEN);
+                return true; // Action completes immediately
+            }
+        }
+
+        // Action to close the claw
+        public class CloseAction implements Action {
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                leftServo.setPosition(LEFT_SERVO_CLOSED);
+                rightServo.setPosition(RIGHT_SERVO_CLOSED);
+                return true; // Action completes immediately
+            }
+        }
+
+        // Factory method to create an open action
+        public Action openAction() {
+            return new OpenAction();
+        }
+
+        // Factory method to create a close action
+        public Action closeAction() {
+            return new CloseAction();
+        }
     }
-    public class Arm2 {
-        private DcMotor motor1;
-        private Servo wrist1 = null;
+    public class Arm2 {private DcMotor motor1;
+
+        private Servo wrist1 = null; // First wrist servo
         private Servo wrist2 = null;
+
+
         private ElapsedTime timer;
         private Telemetry telemetry;
 
-        public int target_position = 0;
-        private double integralSum = 0;
-        private double lastError = 0;
-        private double lastTime = 0;
-        private double gravityCompensation = 0.00005;
-        private double kP = 0.01;
-        private double kI = 0.001;
-        private double kD = 0.001;
-        private double maxIntegral = 0.05;
-        private double maxDerivative = 0.0003;
+        public int target_position = 0; // Target position for the arm
+        private double integralSum = 0; // Integral for PID control
+        private double lastError = 0; // Last error value for PID
+        private double lastTime = 0; // Last time update was called
+        private double gravityCompensation = 0.0005; // Gravity compensation factor (adjust as needed)
+        private double target_velocity = .05; // Target velocity for constant velocity control
+
+        // PID Constants
+        private double kP = 0.01; // Proportional constant
+        private double kI = 0.001; // Integral constant
+        private double kD = 0.001; // Derivative constant
+
+
+        private double maxIntegral = .05; // Limit integral to prevent windup
+        private double maxDerivative = 0.0003; // Limit derivative changes
+
 
         public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
-            target_position = 0;
             motor1 = hardwareMap.get(DcMotor.class, "INTAKE");
 
             timer = elapsedTime;
@@ -110,82 +162,99 @@ public class Jan5thAuto extends LinearOpMode {
             motor1.setDirection(DcMotor.Direction.REVERSE);
             motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
             motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+            wrist1 = hardwareMap.get(Servo.class, "INPUTLEFT");
+            wrist2 = hardwareMap.get(Servo.class, "INPUTRIGHT");
+            wrist2.setDirection(Servo.Direction.REVERSE);
         }
 
-        public void update() {
-            double pos = motor1.getCurrentPosition();
-            double error = target_position - pos;
+        public void moveToPosition(int ticks) {
+            target_position = Range.clip(ticks, 0, 10000);
+            motor1.setTargetPosition(target_position);
+            motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
+            double liftPower = 1.0;
+            motor1.setPower(liftPower);
+
+            while (motor1.isBusy()) {
+                // Optional: Add telemetry or additional logic here
+            }
+
+            motor1.setPower(0);
+            motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+
+        public class MoveToPositionAction implements Action {
+            private int targetPosition;
+
+            public MoveToPositionAction(int position) {
+                this.targetPosition = Range.clip(position, 0, 10000);
+            }
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                motor1.setTargetPosition(targetPosition);
+                motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                double liftPower = 1.0;
+                motor1.setPower(liftPower);
+
+                if (!motor1.isBusy()) {
+                    motor1.setPower(0);
+                    motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    return true; // Action is complete
+                }
+
+                return false; // Action is still running
+            }
+        }
+
+        // Factory method to create a MoveToPositionAction
+        public Action moveToPositionAction(int position) {
+            return new MoveToPositionAction(position);
+        }
+        public void update() {
+
+            // Get the current position of the arm
+            double pos = (motor1.getCurrentPosition());
+            double error = target_position - pos;
+            if(pos<0)
+            {
+                target_position=0;
+            }
+            if(pos<200){
+                wrist1.setPosition(0.1);
+                wrist2.setPosition(0.1);
+            }
+
+            // Time elapsed for PID calculation
             double currentTime = timer.seconds();
             double deltaTime = currentTime - lastTime;
 
+            // Proportional term
             double pTerm = kP * error;
+
+            // Integral term with limit
             integralSum = Range.clip(integralSum + error * deltaTime, -maxIntegral, maxIntegral);
             double iTerm = kI * integralSum;
 
+            // Derivative term with limit
             double deltaError = error - lastError;
             double dTerm = (deltaTime > 0) ? kD * Range.clip(deltaError / deltaTime, -maxDerivative, maxDerivative) : 0;
 
+            // PID output with gravity compensation
             double pidOutput = pTerm + iTerm + dTerm;
             double motorPower = Range.clip(pidOutput + gravityCompensation * Math.signum(error), -0.5, 0.5);
 
+            // Apply power to motors
             motor1.setPower(motorPower);
 
+
+            // Update previous values for next loop
             lastError = error;
             lastTime = currentTime;
-            sleep(20);
-        }
-
-        public void moveElbowTo(int ticks) {
-            target_position = ticks;
-            motor1.setTargetPosition(target_position);
-
-            motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-            double currentPower = 0.4;
-            double maxPower = 0.7;
-            if (motor1.getCurrentPosition() < 200) {
-                currentPower = 0.1;
-                maxPower = 0.2;
-            }
-
-            while (motor1.isBusy()) {
-                int currentPos = motor1.getCurrentPosition();
-                int distanceToTarget = Math.abs(target_position - currentPos);
-
-                currentPower = Range.clip(currentPower + 0.01, 0.1, maxPower);
-                if (distanceToTarget < 50) {
-                    currentPower *= 0.5;
-                }
-
-                motor1.setPower(currentPower);
-            }
-        }
-
-        public void moveElbow(int ticks) {
-            target_position += ticks;
-            target_position = Range.clip(target_position, -10000, 0);
-            motor1.setTargetPosition(target_position);
-
-            motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            double currentPower = 0.7;
-            double maxPower = 1;
-
-            while (motor1.isBusy()) {
-                int currentPos = motor1.getCurrentPosition();
-                int distanceToTarget = Math.abs(target_position - currentPos);
-
-                currentPower = maxPower;
-                if (distanceToTarget < 10) {
-                    currentPower *= 0.1;
-                }
-
-                motor1.setPower(currentPower);
-            }
-        }
-
-        public void setTargetPosition(int position) {
-            target_position = position;
+            sleep(5);
+            telemetry.update();
         }
     }
     public class LinearSlide {
@@ -246,6 +315,39 @@ public class Jan5thAuto extends LinearOpMode {
                 LS2.setPower(maxPower * 0.75);
                 telemetry.update();
             }
+        }
+        public class MoveToPositionAction implements Action {
+            private int targetPosition;
+
+            public MoveToPositionAction(int position) {
+                this.targetPosition = Range.clip(position, 0, 10000);
+            }
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                LS1.setTargetPosition(targetPosition);
+                LS2.setTargetPosition(targetPosition);
+                LS1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                LS2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                double liftPower = 1.0;
+                LS1.setPower(liftPower);
+                LS1.setPower(liftPower);
+
+                if (!LS1.isBusy()) {
+                    LS1.setPower(0);
+                    LS2.setPower(0);
+
+                    return true; // Action is complete
+                }
+
+                return false; // Action is still running
+            }
+        }
+
+        // Factory method to create a MoveToPositionAction
+        public Action moveToPositionAction(int position) {
+            return new MoveToPositionAction(position);
         }
     }
     public class SampleDetection {
@@ -399,11 +501,14 @@ public class Jan5thAuto extends LinearOpMode {
         Pose2d initialPose = new Pose2d(0, 0, Math.toRadians(0));
         MecanumDrive drive = new MecanumDrive(hardwareMap, initialPose);
 
-        //Claw wrist3 = new Claw(hardwareMap);
-        Arm2 arm = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+        LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
+        Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+        Claw intakeclaw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
+        Claw outputclaw = new Claw(hardwareMap, "OUTPUTCLAWLEFT", "OUTPUTCLAWRIGHT");
+
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
-                .strafeTo(new Vector2d(50, 0));
+                .strafeTo(new Vector2d(-32, 0));
 
         TrajectoryActionBuilder tab2 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(0)))
                 .strafeTo(new Vector2d(0, 0));
@@ -411,15 +516,18 @@ public class Jan5thAuto extends LinearOpMode {
         TrajectoryActionBuilder tab3 = drive.actionBuilder(new Pose2d(-20, 2, Math.toRadians(45+180)))
                 .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
+        TrajectoryActionBuilder MoveToBucket = drive.actionBuilder(new Pose2d(0, 0, Math.toRadians(0)))
+                .strafeTo(new Vector2d(-4, 32))
+                .turn(Math.toRadians(45));
 
-        Action trajectoryActionCloseOut = tab1.fresh()
-                .strafeTo(new Vector2d(48, 0))
+
+        Action trajectoryActionCloseOut = MoveToBucket.fresh()
+                .strafeTo(new Vector2d(-4, 32))
                 .build();
 
         // actions that need to happen on init; for instance, a claw tightening.
-        //wrist3.closeClaw();
-        //bucket.UntiltBucket();
 
+        intakeclaw.close();
         telemetry.update();
         waitForStart();
 
@@ -427,12 +535,32 @@ public class Jan5thAuto extends LinearOpMode {
 
         Action trajectoryActionChosen;
         trajectoryActionChosen = tab1.build();
-        arm.update();
+        intake.update();
+        // Close the intake claw
         Actions.runBlocking(
                 new SequentialAction(
-                        trajectoryActionChosen
-
+                        MoveToBucket.build(), // Move the robot using the trajectory
+                        intake.moveToPositionAction(300), // Extend the arm
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                intake.wrist1.setPosition(0.5); // Example position
+                                intake.wrist2.setPosition(0.5);
+                                return true; // Action is immediate
+                            }
+                        },
+                        LS.moveToPositionAction(3350),
+                        new Action() { // Open the intake claw
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                intakeclaw.open();
+                                return true;
+                            }
+                        },
+                        intake.moveToPositionAction(0),
+                        intakeclaw.closeAction()
                 )
         );
+
     }
 }
