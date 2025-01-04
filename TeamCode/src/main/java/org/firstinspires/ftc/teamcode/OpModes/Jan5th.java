@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.OpModes;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -12,7 +12,6 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
 import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
-import org.firstinspires.ftc.teamcode.Classes.OutputClaw;
 
 @Config
 @TeleOp(name = "Jan5th", group = "Linear Opmode")
@@ -25,7 +24,7 @@ public class Jan5th extends LinearOpMode {
     private double y;
     private double x;
     private double rx;
-    private double sens = 1;
+    private double sens = .8;
     boolean isClawOpen = false;
     boolean isOutputClawOpen = false;
     private DcMotor FrontLeftMotor=null;

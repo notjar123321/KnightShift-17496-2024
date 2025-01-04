@@ -1,6 +1,4 @@
-package org.firstinspires.ftc.teamcode;
-
-import static android.os.SystemClock.sleep;
+package org.firstinspires.ftc.teamcode.AutoModes;
 
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
@@ -25,11 +23,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.Classes.Arm2;
-import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
-import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 import org.firstinspires.ftc.teamcode.Classes.MecanumDrive;
-import org.firstinspires.ftc.teamcode.Classes.OutputClaw;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -196,23 +190,38 @@ public class Jan5thAuto extends LinearOpMode {
 
             @Override
             public boolean run(@NonNull TelemetryPacket packet) {
+                // Define a small threshold for acceptable error
+                final int positionalThreshold = 10;
+                final double liftPower = 1.0;
+                final long timeoutMillis = 3000; // 3-second timeout
+                long startTime = System.currentTimeMillis();
+
                 motor1.setTargetPosition(targetPosition);
                 motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-
-                double liftPower = 1.0;
                 motor1.setPower(liftPower);
 
-                if (!motor1.isBusy()) {
-                    motor1.setPower(0);
-                    motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                    return true; // Action is complete
+                while (motor1.isBusy()) {
+                    // Check if within the acceptable threshold
+                    if (Math.abs(motor1.getCurrentPosition() - targetPosition) <= positionalThreshold) {
+                        break;
+                    }
+
+                    // Timeout check
+                    if (System.currentTimeMillis() - startTime > timeoutMillis) {
+                        telemetry.addData("Error", "Motor timeout reached!");
+                        telemetry.update();
+                        break;
+                    }
                 }
 
-                return false; // Action is still running
+// Stop the motor
+                motor1.setPower(0);
+                motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                return true; // Action is complete
             }
         }
 
-        // Factory method to create a MoveToPositionAction
+                // Factory method to create a MoveToPositionAction
         public Action moveToPositionAction(int position) {
             return new MoveToPositionAction(position);
         }
