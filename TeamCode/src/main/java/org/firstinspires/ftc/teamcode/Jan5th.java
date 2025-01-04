@@ -123,10 +123,10 @@ public class Jan5th extends LinearOpMode {
                 OutputArmServo.setPosition(OutputArmPosition);
             }
 
-            if(gamepad2.dpad_right){
+            if(gamepad2.y && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){ //whole sequence
                 intake.moveElbowTo(400);
-                OutputArmServo.setPosition(.2417);
-                OutputArmWrist.setPosition(.4);
+                OutputArmServo.setPosition(.05);
+                OutputArmWrist.setPosition(.7);
                 nonBlockingDelay(1500);
                 intake.moveElbowTo(223);
                 nonBlockingDelay(1500);
@@ -143,13 +143,18 @@ public class Jan5th extends LinearOpMode {
                 intake.moveElbow(90);
                 LS.moveLSTo(3350);
                 nonBlockingDelay(2500);
-                OutputArmServo.setPosition(1);
+                OutputArmServo.setPosition(.85);
                 nonBlockingDelay(1200);
-                OutputArmWrist.setPosition(.8);
+                OutputArmWrist.setPosition(.65);
                 nonBlockingDelay(300);
                 OutputArmWrist.setPosition(0);
                 nonBlockingDelay(500);
+                OutputArmServo.setPosition(.2);
+                nonBlockingDelay(5);
+                OutputArmWrist.setPosition(.3);
                 LS.moveLSTo(0);
+                OutputArmPosition=OutputArmServo.getPosition();
+                OutputWristPosition=OutputArmWrist.getPosition();
             }
             if (gamepad2.x && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeX)) {
                 lastPressedTimeX = (long) runtime.milliseconds();
@@ -166,14 +171,14 @@ public class Jan5th extends LinearOpMode {
                 lastPressedTimeBumper = (long) runtime.milliseconds();
                 OutputWristPosition = OutputArmWrist.getPosition();
                 OutputArmWrist.setPosition(Range.clip(OutputWristPosition + 0.1, 0, 1));
-                sleep(10);
+
 
             }
             if(gamepad2.right_trigger!=0 && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
                 lastPressedTimeBumper = (long) runtime.milliseconds();
                 OutputWristPosition = OutputArmWrist.getPosition();
                 OutputArmWrist.setPosition(Range.clip(OutputWristPosition - 0.1, 0, 1));
-                sleep(10);
+
             }
 
 

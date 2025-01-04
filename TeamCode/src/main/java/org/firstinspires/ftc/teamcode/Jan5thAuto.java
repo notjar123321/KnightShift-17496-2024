@@ -55,6 +55,9 @@ import java.util.List;
 @Autonomous(name = "Jan5thAuto", group = "Autonomous")
 public class Jan5thAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
+    private Servo OutputArmServo;
+    private Servo OutputArmWrist;
+
     private void nonBlockingDelay(double milliseconds) {
         ElapsedTime delayTimer = new ElapsedTime();
         delayTimer.reset();
@@ -490,12 +493,6 @@ public class Jan5thAuto extends LinearOpMode {
         }
     }
 
-
-
-
-
-
-
     @Override
     public void runOpMode() {
         Pose2d initialPose = new Pose2d(0, 0, Math.toRadians(0));
@@ -505,6 +502,8 @@ public class Jan5thAuto extends LinearOpMode {
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
         Claw intakeclaw = new Claw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
         Claw outputclaw = new Claw(hardwareMap, "OUTPUTCLAWLEFT", "OUTPUTCLAWRIGHT");
+        OutputArmServo = hardwareMap.get(Servo.class, "OUTPUTARM");
+        OutputArmWrist = hardwareMap.get(Servo.class, "OUTPUTWRIST");
 
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
@@ -517,12 +516,12 @@ public class Jan5thAuto extends LinearOpMode {
                 .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
         TrajectoryActionBuilder MoveToBucket = drive.actionBuilder(new Pose2d(0, 0, Math.toRadians(0)))
-                .strafeTo(new Vector2d(-4, 32))
-                .turn(Math.toRadians(45));
+                .strafeTo(new Vector2d(-12, -36))
+                .turnTo(Math.toRadians(-45));
 
 
         Action trajectoryActionCloseOut = MoveToBucket.fresh()
-                .strafeTo(new Vector2d(-4, 32))
+                .strafeTo(new Vector2d(-12, -36))
                 .build();
 
         // actions that need to happen on init; for instance, a claw tightening.
@@ -540,7 +539,24 @@ public class Jan5thAuto extends LinearOpMode {
         Actions.runBlocking(
                 new SequentialAction(
                         MoveToBucket.build(), // Move the robot using the trajectory
-                        intake.moveToPositionAction(300), // Extend the arm
+                        intake.moveToPositionAction(400), // Extend the arm
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                OutputArmServo.setPosition(.08);
+
+                                return true; // Action is immediate
+                            }
+                        },
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+
+                                OutputArmWrist.setPosition(.7);
+                                return true; // Action is immediate
+                            }
+                        },
+                        intake.moveToPositionAction(223),
                         new Action() { // Rotate the servo
                             @Override
                             public boolean run(@NonNull TelemetryPacket packet) {
@@ -549,7 +565,50 @@ public class Jan5thAuto extends LinearOpMode {
                                 return true; // Action is immediate
                             }
                         },
+                        intakeclaw.openAction(),
+                        intake.moveToPositionAction(223),
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                intake.wrist1.setPosition(0.4); // Example position
+                                intake.wrist2.setPosition(0.4);
+                                return true; // Action is immediate
+                            }
+                        },
+                        intake.moveToPositionAction(223),
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                intake.wrist1.setPosition(0.1); // Example position
+                                intake.wrist2.setPosition(0.1);
+                                return true; // Action is immediate
+                            }
+                        },
+                        intake.moveToPositionAction(350),
+
                         LS.moveToPositionAction(3350),
+                        intake.moveToPositionAction(223),
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                OutputArmServo.setPosition(1);
+                                return true; // Action is immediate
+                            }
+                        },
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                OutputArmWrist.setPosition(.8);
+                                return true; // Action is immediate
+                            }
+                        },
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                OutputArmWrist.setPosition(0);
+                                return true; // Action is immediate
+                            }
+                        },
                         new Action() { // Open the intake claw
                             @Override
                             public boolean run(@NonNull TelemetryPacket packet) {
@@ -557,6 +616,14 @@ public class Jan5thAuto extends LinearOpMode {
                                 return true;
                             }
                         },
+                        new Action() { // Rotate the servo
+                            @Override
+                            public boolean run(@NonNull TelemetryPacket packet) {
+                                OutputArmServo.setPosition(0);
+                                return true; // Action is immediate
+                            }
+                        },
+                        LS.moveToPositionAction(0),
                         intake.moveToPositionAction(0),
                         intakeclaw.closeAction()
                 )
