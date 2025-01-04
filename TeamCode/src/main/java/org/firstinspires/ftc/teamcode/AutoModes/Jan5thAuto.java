@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
+import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
@@ -35,11 +36,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 import org.openftc.easyopencv.OpenCvWebcam;
-import org.tensorflow.lite.DataType;
-import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.support.image.ImageProcessor;
-import org.tensorflow.lite.support.image.TensorImage;
-import org.tensorflow.lite.support.image.ops.ResizeOp;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -193,8 +190,7 @@ public class Jan5thAuto extends LinearOpMode {
                 // Define a small threshold for acceptable error
                 final int positionalThreshold = 10;
                 final double liftPower = 1.0;
-                final long timeoutMillis = 3000; // 3-second timeout
-                long startTime = System.currentTimeMillis();
+
 
                 motor1.setTargetPosition(targetPosition);
                 motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -202,23 +198,18 @@ public class Jan5thAuto extends LinearOpMode {
 
                 while (motor1.isBusy()) {
                     // Check if within the acceptable threshold
-                    if (Math.abs(motor1.getCurrentPosition() - targetPosition) <= positionalThreshold) {
-                        break;
-                    }
+                    telemetry.addData("repeating", "repeating");
+                    telemetry.update();
 
-                    // Timeout check
-                    if (System.currentTimeMillis() - startTime > timeoutMillis) {
-                        telemetry.addData("Error", "Motor timeout reached!");
-                        telemetry.update();
-                        break;
-                    }
+                    // Optional: PID adjustments or other logic can go here if needed
+                    // You can add telemetry or further conditions here to monitor progress
                 }
 
-// Stop the motor
-                motor1.setPower(0);
-                motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                return true; // Action is complete
+                motor1.setPower(0);  // Stop the motor
+                motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);  // Revert to encoder mode
+                return true;  // Action is complete
             }
+
         }
 
                 // Factory method to create a MoveToPositionAction
@@ -362,36 +353,6 @@ public class Jan5thAuto extends LinearOpMode {
             return new MoveToPositionAction(position);
         }
     }
-    public class SampleDetection {
-        private Interpreter tflite;
-
-        // Load the model in the constructor or initialization function
-        public SampleDetection(AssetManager assetManager, String modelPath) {
-            SampleDetection detection = new SampleDetection(assetManager, "model.tflite");
-
-        }
-        public TensorImage preprocessImage(Bitmap bitmap) {
-            TensorImage tensorImage = new TensorImage(DataType.UINT8);
-
-            // Load image into TensorImage
-            tensorImage.load(bitmap);
-
-            // Resize to model input size, e.g., 300x300
-            ImageProcessor imageProcessor = new ImageProcessor.Builder()
-                    .add(new ResizeOp(300, 300, ResizeOp.ResizeMethod.BILINEAR))
-                    .build();
-            return imageProcessor.process(tensorImage);
-        }
-
-
-        // Close the interpreter when done
-        public void close() {
-            if (tflite != null) {
-                tflite.close();
-                tflite = null;
-            }
-        }
-    }
     static class CubeDetectionPipeline extends OpenCvPipeline {
         private Telemetry telemetry;
         private double focalLength = 460; // Replace with calibrated focal length
@@ -501,6 +462,59 @@ public class Jan5thAuto extends LinearOpMode {
             return input;
         }
     }
+    // Helper method to create an Action for servo movement
+    public class wrist{
+        private Servo wrist1;
+        public wrist(HardwareMap hardwareMap, String ServoName){
+            wrist1 = hardwareMap.get(Servo.class, ServoName);
+        }
+        public class SetPositionAction implements Action {
+            private double pos;
+            public SetPositionAction(double position){
+                pos = position;
+            }
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                wrist1.setPosition(pos);
+                return true; // Action completes immediately
+            }
+        }
+        public Action setPositionAction(double position){
+            return new SetPositionAction(position);
+        }
+    }
+    private Action moveServoAction(Servo servo, double targetPosition) {
+        return packet -> {
+            servo.setPosition(targetPosition);
+            telemetry.addData("Servo", "Moved to position: " + targetPosition);
+            telemetry.update();
+            return true; // Immediate action completion
+        };
+    }
+
+    private Action waitAction(long milliseconds) {
+        return new Action() {
+            private long startTime = -1;
+
+            @Override
+            public boolean run(@NonNull TelemetryPacket packet) {
+                if (startTime == -1) startTime = System.currentTimeMillis();
+                if (System.currentTimeMillis() - startTime >= milliseconds) {
+                    telemetry.addData("Wait", "Completed after " + milliseconds + "ms");
+                    telemetry.update();
+                    return true; // Action completed
+                }
+                return false; // Keep waiting
+            }
+        };
+    }
+
+
+
+
+
+
 
     @Override
     public void runOpMode() {
@@ -513,6 +527,10 @@ public class Jan5thAuto extends LinearOpMode {
         Claw outputclaw = new Claw(hardwareMap, "OUTPUTCLAWLEFT", "OUTPUTCLAWRIGHT");
         OutputArmServo = hardwareMap.get(Servo.class, "OUTPUTARM");
         OutputArmWrist = hardwareMap.get(Servo.class, "OUTPUTWRIST");
+        wrist OutputArm = new wrist(hardwareMap, "OUTPUTARM");
+        wrist OutputArmWrist = new wrist(hardwareMap, "OUTPUTWRIST");
+        wrist intakeWrist1 = new wrist(hardwareMap, "INPUTLEFT");
+        wrist intakeWrist2 = new wrist(hardwareMap, "INPUTRIGHT");
 
 
         TrajectoryActionBuilder tab1 = drive.actionBuilder(initialPose)
@@ -525,12 +543,12 @@ public class Jan5thAuto extends LinearOpMode {
                 .strafeTo(new Vector2d(-15, 14))
                 .turn(Math.toRadians(45));
         TrajectoryActionBuilder MoveToBucket = drive.actionBuilder(new Pose2d(0, 0, Math.toRadians(0)))
-                .strafeTo(new Vector2d(-12, -36))
+                .strafeTo(new Vector2d(-14, -43))
                 .turnTo(Math.toRadians(-45));
 
 
         Action trajectoryActionCloseOut = MoveToBucket.fresh()
-                .strafeTo(new Vector2d(-12, -36))
+                .strafeTo(new Vector2d(-14, -43))
                 .build();
 
         // actions that need to happen on init; for instance, a claw tightening.
@@ -544,97 +562,37 @@ public class Jan5thAuto extends LinearOpMode {
         Action trajectoryActionChosen;
         trajectoryActionChosen = tab1.build();
         intake.update();
-        // Close the intake claw
+
         Actions.runBlocking(
                 new SequentialAction(
-                        MoveToBucket.build(), // Move the robot using the trajectory
+                        MoveToBucket.build(), // Move robot to the bucket
                         intake.moveToPositionAction(400), // Extend the arm
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                OutputArmServo.setPosition(.08);
+                        OutputArm.setPositionAction(1), // Move the output arm
+                        OutputArmWrist.setPositionAction(0.7), // Set wrist position
+                        intake.moveToPositionAction(200),
+                        intakeWrist1.setPositionAction(0.5), // Adjust wrist1
+                        intakeWrist2.setPositionAction(0.5), // Adjust wrist2
+                        intakeclaw.openAction(), // Open intake claw
+                        intake.moveToPositionAction(200),
+                        intakeWrist1.setPositionAction(0.4), // Adjust wrist1
+                        intakeWrist2.setPositionAction(0.4), // Adjust wrist2
 
-                                return true; // Action is immediate
-                            }
-                        },
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
+                        intake.moveToPositionAction(223),
+                        intakeWrist1.setPositionAction(0.1), // Final wrist1 adjustment
+                        intakeWrist2.setPositionAction(0.1), // Final wrist2 adjustment
 
-                                OutputArmWrist.setPosition(.7);
-                                return true; // Action is immediate
-                            }
-                        },
-                        intake.moveToPositionAction(223),
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                intake.wrist1.setPosition(0.5); // Example position
-                                intake.wrist2.setPosition(0.5);
-                                return true; // Action is immediate
-                            }
-                        },
-                        intakeclaw.openAction(),
-                        intake.moveToPositionAction(223),
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                intake.wrist1.setPosition(0.4); // Example position
-                                intake.wrist2.setPosition(0.4);
-                                return true; // Action is immediate
-                            }
-                        },
-                        intake.moveToPositionAction(223),
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                intake.wrist1.setPosition(0.1); // Example position
-                                intake.wrist2.setPosition(0.1);
-                                return true; // Action is immediate
-                            }
-                        },
                         intake.moveToPositionAction(350),
 
                         LS.moveToPositionAction(3350),
                         intake.moveToPositionAction(223),
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                OutputArmServo.setPosition(1);
-                                return true; // Action is immediate
-                            }
-                        },
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                OutputArmWrist.setPosition(.8);
-                                return true; // Action is immediate
-                            }
-                        },
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                OutputArmWrist.setPosition(0);
-                                return true; // Action is immediate
-                            }
-                        },
-                        new Action() { // Open the intake claw
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                intakeclaw.open();
-                                return true;
-                            }
-                        },
-                        new Action() { // Rotate the servo
-                            @Override
-                            public boolean run(@NonNull TelemetryPacket packet) {
-                                OutputArmServo.setPosition(0);
-                                return true; // Action is immediate
-                            }
-                        },
-                        LS.moveToPositionAction(0),
-                        intake.moveToPositionAction(0),
-                        intakeclaw.closeAction()
+                        OutputArm.setPositionAction(0.85), // Rotate output arm servo
+                        OutputArmWrist.setPositionAction(0.8), // Rotate wrist servo
+                        OutputArmWrist.setPositionAction(0.0), // Reset wrist position
+                        intakeclaw.openAction(), // Open the claw
+                        OutputArm.setPositionAction(0.0), // Reset arm servo
+                        LS.moveToPositionAction(0), // Reset linear slide
+                        intake.moveToPositionAction(0), // Reset intake
+                        intakeclaw.closeAction() // Close the claw
                 )
         );
 

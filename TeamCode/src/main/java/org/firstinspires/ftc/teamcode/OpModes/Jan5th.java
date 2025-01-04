@@ -123,11 +123,11 @@ public class Jan5th extends LinearOpMode {
             }
 
             if(gamepad2.y && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){ //whole sequence
-                intake.moveElbowTo(400);
+                intake.moveElbowTo(350);
                 OutputArmServo.setPosition(.05);
                 OutputArmWrist.setPosition(.7);
-                nonBlockingDelay(1500);
-                intake.moveElbowTo(223);
+                nonBlockingDelay(700);
+                intake.moveElbowTo(190);
                 nonBlockingDelay(1500);
                 INPUTLEFT.setPosition(Range.clip( .5, 0, 1));
                 INPUTRIGHT.setPosition(Range.clip( .5, 0, 1));
@@ -141,17 +141,7 @@ public class Jan5th extends LinearOpMode {
                 INPUTRIGHT.setPosition(Range.clip( .1, 0, 1));
                 intake.moveElbow(90);
                 LS.moveLSTo(3350);
-                nonBlockingDelay(2500);
-                OutputArmServo.setPosition(.85);
-                nonBlockingDelay(1200);
-                OutputArmWrist.setPosition(.65);
-                nonBlockingDelay(300);
-                OutputArmWrist.setPosition(0);
-                nonBlockingDelay(500);
-                OutputArmServo.setPosition(.2);
-                nonBlockingDelay(5);
-                OutputArmWrist.setPosition(.3);
-                LS.moveLSTo(0);
+
                 OutputArmPosition=OutputArmServo.getPosition();
                 OutputWristPosition=OutputArmWrist.getPosition();
             }
