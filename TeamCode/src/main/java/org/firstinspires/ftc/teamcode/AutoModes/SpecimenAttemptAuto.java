@@ -1,14 +1,10 @@
 package org.firstinspires.ftc.teamcode.AutoModes;
 
-import android.content.res.AssetManager;
-import android.graphics.Bitmap;
-
 import androidx.annotation.NonNull;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.ParallelAction;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.SequentialAction;
 import com.acmerobotics.roadrunner.TrajectoryActionBuilder;
@@ -37,14 +33,13 @@ import org.opencv.imgproc.Imgproc;
 import org.openftc.easyopencv.OpenCvPipeline;
 import org.openftc.easyopencv.OpenCvWebcam;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 
 @Config
 @Autonomous(name = "Jan5thAuto", group = "Autonomous")
-public class Jan5thAuto extends LinearOpMode {
+public class SpecimenAttemptAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
     private Servo OutputArmServo;
     private Servo OutputArmWrist;
@@ -584,7 +579,7 @@ public class Jan5thAuto extends LinearOpMode {
         Actions.runBlocking(
                 new SequentialAction(
                         MoveToBucket.build(),
-                        LS.moveToPositionAction(3350),
+
                         OutputArm.setPositionAction(0.75), // Rotate output arm servo
                         OutputArmWrist.setPositionAction(0.5), // Rotate wrist servo
                         OutputArmWrist.setPositionAction(0.0), // Reset wrist position
