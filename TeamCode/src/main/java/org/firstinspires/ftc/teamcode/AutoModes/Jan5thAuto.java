@@ -43,7 +43,7 @@ import java.util.List;
 
 
 @Config
-@Autonomous(name = "Jan5thAuto", group = "Autonomous")
+@Autonomous(name = "CameraTest", group = "Autonomous")
 public class Jan5thAuto extends LinearOpMode {
     private OpenCvWebcam webcam;
     private Servo OutputArmServo;
