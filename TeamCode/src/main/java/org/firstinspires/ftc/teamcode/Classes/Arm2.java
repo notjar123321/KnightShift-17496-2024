@@ -4,6 +4,7 @@ import static android.os.SystemClock.sleep;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -15,8 +16,7 @@ public class Arm2 {
     private DcMotor motor1;
     private DcMotor motor2; // Second motor
 
-    private Servo wrist1 = null; // First wrist servo
-    private Servo wrist2 = null; // Second wrist servo
+
 
     private ElapsedTime timer;
     private Telemetry telemetry;
@@ -25,16 +25,16 @@ public class Arm2 {
     private double integralSum = 0; // Integral for PID control
     private double lastError = 0; // Last error value for PID
     private double lastTime = 0; // Last time update was called
-    private double gravityCompensation = 0.0005; // Gravity compensation factor (adjust as needed)
+    public static double gravityCompensation = 0.025; // Gravity compensation factor (adjust as needed)
 
     // PID Constants
-    private double kP = 0.01; // Proportional constant
-    private double kI = 0.001; // Integral constant
-    private double kD = 0.001; // Derivative constant
+    public static double kP = 0.005; // Proportional constant
+    public static double kI = 0.001; // Integral constant
+    public static double kD = 0.001; // Derivative constant
     public static double reduce = .8;
 
-    private double maxIntegral = .05; // Limit integral to prevent windup
-    private double maxDerivative = 0.0003; // Limit derivative changes
+    public static double maxIntegral = .2; // Limit integral to prevent windup
+    public double maxDerivative = 0.0003; // Limit derivative changes
 
     public Arm2(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
         target_position = 0;
@@ -44,24 +44,24 @@ public class Arm2 {
         timer = elapsedTime;
         telemetry = telemetryIn;
 
-        motor1.setDirection(DcMotor.Direction.REVERSE);
-        motor2.setDirection(DcMotor.Direction.REVERSE); // Set direction for second motor
-        motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        motor2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER); // Reset encoder for second motor
-        motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        motor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER); // Use the encoder for second motor
+        motor1.setDirection(DcMotorSimple.Direction.FORWARD);
+        motor2.setDirection(DcMotorSimple.Direction.REVERSE);
 
+        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motor1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motor2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        motor1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        motor2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
     }
 
     public void update() {
-        // Get the current position of both motors
-        double pos1 = motor1.getCurrentPosition();
-        double pos2 = motor2.getCurrentPosition();
-        double error = target_position - pos1;
+        // Get the average position of both motors
+        double pos1 = motor2.getCurrentPosition() ;
 
-        if (pos1 < 0) {
-            target_position = 0;
-        }
+        double error = target_position-pos1;
+
+
 
         // Time elapsed for PID calculation
         double currentTime = timer.seconds();
@@ -80,51 +80,69 @@ public class Arm2 {
 
         // PID output with gravity compensation
         double pidOutput = pTerm + iTerm + dTerm;
-        double motorPower = Range.clip(pidOutput + gravityCompensation * Math.signum(error), -0.5, 0.5);
+        double motorPower = Range.clip(.1*Math.cos(pos1-60) + gravityCompensation * Math.signum(error), -1, 1);
 
         // Apply power to both motors
+
+
+        // Set a fixed power level for `RUN_TO_POSITION`
         motor1.setPower(motorPower);
         motor2.setPower(motorPower);
 
         // Update previous values for next loop
         lastError = error;
         lastTime = currentTime;
-        sleep(5);
+        telemetry.addData("inegral windup", integralSum + error * deltaTime);
+        telemetry.addData("P Term", pTerm);
+        telemetry.addData("I Term", iTerm);
+        telemetry.addData("D Term", dTerm);
+        telemetry.addData("motor1 pos", motor1.getCurrentPosition());
+        telemetry.addData("motor2 pos", motor2.getCurrentPosition());
+        telemetry.addData("error", error);
+        telemetry.addData("motor power", pidOutput);
+        telemetry.addData("real motor power", motor1.getPower());
+        telemetry.addData("target position", target_position);
+
+
         telemetry.update();
     }
 
     public void moveElbowTo(int ticks) {
-        target_position = ticks;
-        target_position = Range.clip(target_position, 0, 10000);
+        target_position = Range.clip(ticks, 0, 10000);
         motor1.setTargetPosition(target_position);
-        motor2.setTargetPosition(target_position); // Set the target for second motor as well
+        motor2.setTargetPosition(target_position);
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION); // Set second motor mode
+        motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        while (motor1.isBusy() && motor2.isBusy()) {
-            double power = 1;
+        while (motor1.isBusy() || motor2.isBusy()) {
+            double power = 0.4;
             motor1.setPower(power);
-            motor2.setPower(power); // Apply power to both motors
+            motor2.setPower(power);
         }
+        motor1.setPower(0);
+        motor2.setPower(0);
         telemetry.update();
     }
 
     public void moveElbow(int ticks) {
-        target_position += ticks;
-        target_position = Range.clip(target_position, 0, 10000);
+        target_position = Range.clip(target_position + ticks, 0, 10000);
         motor1.setTargetPosition(target_position);
-        motor2.setTargetPosition(target_position); // Set target for second motor
+        motor2.setTargetPosition(target_position);
         motor1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION); // Set second motor mode
+        motor2.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        while (motor1.isBusy() && motor2.isBusy()) {
-            double currentPower = 1;
-            motor1.setPower(currentPower);
-            motor2.setPower(currentPower); // Apply power to both motors
+        while (motor1.isBusy() || motor2.isBusy()) {
+            double power = 0.4;
+            motor1.setPower(power);
+            motor2.setPower(power);
         }
+        motor1.setPower(0);
+        motor2.setPower(0);
+        telemetry.update();
     }
 
     public void setTargetPosition(int position) {
+
         target_position = position;
     }
 }

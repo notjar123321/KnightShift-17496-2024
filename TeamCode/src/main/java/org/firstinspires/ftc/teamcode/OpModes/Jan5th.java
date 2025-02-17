@@ -58,7 +58,7 @@ public class Jan5th extends LinearOpMode {
         runtime.reset();
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
+        IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT", "Temp");
 
         intakeclaw.close();
 
@@ -232,7 +232,7 @@ public class Jan5th extends LinearOpMode {
 
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
-        IntakeClaw intakeClaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT");
+        IntakeClaw intakeClaw = new IntakeClaw(hardwareMap, "CLAWLEFT", "CLAWRIGHT", "Temp");
 
         FrontLeftMotor = hardwareMap.get(DcMotor.class, "FLM");
         BackLeftMotor = hardwareMap.get(DcMotor.class, "BLM");

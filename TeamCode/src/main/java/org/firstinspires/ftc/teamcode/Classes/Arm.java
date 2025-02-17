@@ -29,8 +29,8 @@ public class Arm {
     private double kD = 0.01; // Derivative constant
 
     public Arm(HardwareMap hardwareMap, ElapsedTime elapsedTime, Telemetry telemetryIn) {
-        motor1 = hardwareMap.get(DcMotor.class, RobotConstants.arm1);
-        motor2 = hardwareMap.get(DcMotor.class, RobotConstants.arm2);
+        motor1 = hardwareMap.get(DcMotor.class, "ArmL");
+        motor2 = hardwareMap.get(DcMotor.class, "ArmR");
         timer = elapsedTime;
         telemetry = telemetryIn;
 
