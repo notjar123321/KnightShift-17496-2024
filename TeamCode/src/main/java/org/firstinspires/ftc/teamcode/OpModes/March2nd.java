@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
+import org.firstinspires.ftc.teamcode.Classes.Arm2gpt;
 import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
 import org.firstinspires.ftc.teamcode.Classes.OutputArm;
 
@@ -32,7 +33,10 @@ public class March2nd extends LinearOpMode {
     private Servo outputClaw;
     private Servo outputArm;
     private static final double WRIST_INCREMENT = 0.01;
-
+    public static double FLconstant = .45;
+    public static double FRconstant = .45;
+    public static double BRconstant = .6;
+    public static double BLconstant = .6;
 
     // Initial positions for OutputClaw and OutputWrist
 
@@ -51,13 +55,14 @@ public class March2nd extends LinearOpMode {
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
         IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAW", "WRIST", "ROTATE");
         OutputArm output = new OutputArm(hardwareMap, "OUTPUTCLAW", "OUTPUTARM");
-        wristPosition = intakeWrist.getPosition();
+        wristPosition = 1-intakeWrist.getPosition();
         rotatePosition = intakeRotate.getPosition();
         double outputClawPosition = outputClaw.getPosition();
         double outputWristPosition = outputArm.getPosition();
 
         runtime.reset();
         waitForStart();
+
 
         // Start drivetrain control on a separate thread
         Thread drivetrainThread = new Thread(new Runnable() {
@@ -74,6 +79,7 @@ public class March2nd extends LinearOpMode {
 
         // Continue with other operations, for example, controlling other components
         while (opModeIsActive()) {
+
             if (gamepad1.dpad_down && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
                 rotatePosition = Math.max(0, rotatePosition - 0.05);
                 intakeclaw.setRotatePosition(rotatePosition);
@@ -94,8 +100,18 @@ public class March2nd extends LinearOpMode {
                 intakeclaw.setWristPosition(wristPosition);
                 nonBlockingDelay(200);
             }
+            if(gamepad2.dpad_up){
+                intake.moveArmBy(10);
+                nonBlockingDelay(100);
+            }
+            if(gamepad2.dpad_down ){
+                intake.moveArmBy(-10);
+                nonBlockingDelay(100);
+            }
+
             if (gamepad1.a) {
                 intakeclaw.close();
+
                 nonBlockingDelay(200);
             } else if(gamepad1.y) {
                 intakeclaw.open();
@@ -117,7 +133,7 @@ public class March2nd extends LinearOpMode {
             }
             // You can add additional logic here if needed
             telemetry.update();
-
+            intake.update();
         }
 
         // Wait for the drivetrain thread to finish before ending the opmode
@@ -126,7 +142,7 @@ public class March2nd extends LinearOpMode {
 
     private void driveControl() {
         double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
-        double x = -gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
+        double x = gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
         double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
 
         // Calculate the largest possible input sum to scale the powers properly
@@ -139,10 +155,10 @@ public class March2nd extends LinearOpMode {
         double backRightPower = (y + x - rx) / denominator;
 
         // Apply power scaling factor
-        FrontLeftMotor.setPower(-frontLeftPower * sens);
-        BackLeftMotor.setPower(-backLeftPower * sens);
-        FrontRightMotor.setPower(frontRightPower * sens);
-        BackRightMotor.setPower(backRightPower * sens);
+        FrontLeftMotor.setPower(-frontLeftPower * FLconstant);
+        BackLeftMotor.setPower(-backLeftPower * BLconstant);
+        FrontRightMotor.setPower(frontRightPower * FRconstant);
+        BackRightMotor.setPower(backRightPower * BRconstant);
     }
 
 
@@ -157,6 +173,7 @@ public class March2nd extends LinearOpMode {
         intakeWrist = hardwareMap.get(Servo.class, "WRIST");
         outputClaw = hardwareMap.get(Servo.class, "OUTPUTCLAW");
         outputArm = hardwareMap.get(Servo.class, "OUTPUTARM");
+
 
 
     }

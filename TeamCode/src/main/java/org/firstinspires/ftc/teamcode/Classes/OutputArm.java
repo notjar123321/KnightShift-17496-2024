@@ -12,7 +12,7 @@ public class OutputArm {
 
     // Positions for OutputClaw and closed states
     public static double OpenOutputClaw = 0.6;
-    public static double ClosedOutputClaw = 0.3;
+    public static double ClosedOutputClaw = 0.22;
     //edit for special values Mr. guy
     public static double LowerOutputWrist = 0.9;
     public static double RaiseOutputWrist = 0.02;

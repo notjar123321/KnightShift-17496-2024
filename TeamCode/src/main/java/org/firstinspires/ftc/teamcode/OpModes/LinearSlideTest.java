@@ -9,10 +9,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
 import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
+import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 
 @Config
-@TeleOp(name = "Arm Test", group = "Linear Opmode")
-public class ArmTest extends LinearOpMode {
+@TeleOp(name = "Linear Slide Test", group = "Linear Opmode")
+public class LinearSlideTest extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
     private double sens = .8;
@@ -22,9 +23,9 @@ public class ArmTest extends LinearOpMode {
     private DcMotor BackRightMotor = null;
     private DcMotor motor1 = null;
     private DcMotor motor2 = null;
-
+    private DcMotor LS1 = null;
+    private DcMotor LS2 = null;
     private long lastPressedTimeBumper = 0;
-    public static int targetV2 = 0;
 
 
 
@@ -39,6 +40,7 @@ public class ArmTest extends LinearOpMode {
         // Now initialize Arm2 after hardware is set up
         Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
         IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAW", "WRIST", "ROTATE");
+        LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
 
         runtime.reset();
         motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -46,39 +48,40 @@ public class ArmTest extends LinearOpMode {
         waitForStart();
 
         // Start drivetrain control on a separate thread
+        Thread drivetrainThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (opModeIsActive()) {
+                    driveControl();
+                }
+            }
+        });
 
+        // Start the drivetrain thread
+        drivetrainThread.start();
 
         // Continue with other operations, for example, controlling other components
         while (opModeIsActive()) {
-            if(targetV2-motor1.getCurrentPosition()>10){
-                motor1.setPower(.1);
-                motor2.setPower(.1);}
-            else if(targetV2-motor1.getCurrentPosition()<-10){
-                motor1.setPower(-.1);
-                motor2.setPower(-.1);
-            }
-
-            motor1.setTargetPosition(targetV2);
-            motor2.setTargetPosition(targetV2);
-            motor1.setPower(.00001);
-            motor2.setPower(.00001);
-
-
+            if(Math.abs(gamepad2.right_stick_y)>.1 || Math.abs(gamepad2.left_stick_y)>.1){
+                LS1.setPower(gamepad2.right_stick_y);
+                LS2.setPower(gamepad2.left_stick_y);}
+            LS1.setPower(0);
+            LS2.setPower(0);
 
 
             // You can add additional logic here if needed
 
-            telemetry.addData("M1", motor1.getCurrentPosition());
-            telemetry.addData("M2", motor2.getCurrentPosition());
-
-
+            telemetry.addData("LS1 Power", LS1.getPower());
+            telemetry.addData("LS2 Power", LS2.getPower());
+            telemetry.addData("LS1 Position", LS1.getCurrentPosition());
+            telemetry.addData("LS2 Position", LS2.getCurrentPosition());
 
 
             telemetry.update();
         }
 
         // Wait for the drivetrain thread to finish before ending the opmode
-
+        drivetrainThread.join();
     }
 
     private void driveControl() {
@@ -112,9 +115,13 @@ public class ArmTest extends LinearOpMode {
         BackRightMotor = hardwareMap.get(DcMotor.class, "BRM");
         motor1 = hardwareMap.get(DcMotor.class, "ArmR");
         motor2 = hardwareMap.get(DcMotor.class, "ArmL");
-
+        motor1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        motor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         motor1.setDirection(DcMotorSimple.Direction.FORWARD);
         motor2.setDirection(DcMotorSimple.Direction.REVERSE);
+        LS1 = hardwareMap.get(DcMotor.class, "LS1");
+        LS2 = hardwareMap.get(DcMotor.class, "LS2");
+
 
 
     }
