@@ -37,6 +37,8 @@ public class March2nd extends LinearOpMode {
     public static double FRconstant = .45;
     public static double BRconstant = .6;
     public static double BLconstant = .6;
+    private boolean intakeclawClosed = false;
+    private boolean outputclawClosed = false;
 
     // Initial positions for OutputClaw and OutputWrist
 
@@ -52,11 +54,11 @@ public class March2nd extends LinearOpMode {
         initializeHardware();
 
         // Now initialize Arm2 after hardware is set up
-        Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+        Arm2 intake = new Arm2(hardwareMap,  telemetry);
         IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAW", "WRIST", "ROTATE");
         OutputArm output = new OutputArm(hardwareMap, "OUTPUTCLAW", "OUTPUTARM");
-        wristPosition = 1-intakeWrist.getPosition();
-        rotatePosition = intakeRotate.getPosition();
+        wristPosition = .5;
+        rotatePosition = .5;
         double outputClawPosition = outputClaw.getPosition();
         double outputWristPosition = outputArm.getPosition();
 
@@ -77,16 +79,18 @@ public class March2nd extends LinearOpMode {
         // Start the drivetrain thread
         drivetrainThread.start();
 
-        // Continue with other operations, for example, controlling other components
+        // Continue with other opera2tions, for example, controlling other components
+
+        //Gamepad2: a->open/close outputclaw, b->open/close inputclaw, left joytstick ->move output arm, dpad up/down->arm ->bumpers wristup/down,
         while (opModeIsActive()) {
 
-            if (gamepad1.dpad_down && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
-                rotatePosition = Math.max(0, rotatePosition - 0.05);
+            if (gamepad2.right_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+                rotatePosition = Range.clip(rotatePosition - 0.05, 0, 1);
                 intakeclaw.setRotatePosition(rotatePosition);
                 nonBlockingDelay(200);
             }
-            if (gamepad1.dpad_up && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
-                rotatePosition = Math.min(1, rotatePosition + 0.05);
+            if (gamepad1.left_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+                rotatePosition = Range.clip( rotatePosition + 0.05, 0 , 1);
                 intakeclaw.setRotatePosition(rotatePosition);
                 nonBlockingDelay(200);
             }
@@ -100,36 +104,42 @@ public class March2nd extends LinearOpMode {
                 intakeclaw.setWristPosition(wristPosition);
                 nonBlockingDelay(200);
             }
-            if(gamepad2.dpad_up){
-                intake.moveArmBy(10);
+
+
+            if(gamepad2.dpad_up ){
+                intake.moveArmBy(20);
                 nonBlockingDelay(100);
             }
             if(gamepad2.dpad_down ){
-                intake.moveArmBy(-10);
+                intake.moveArmBy(-20);
                 nonBlockingDelay(100);
             }
-
-            if (gamepad1.a) {
+            if(gamepad2.b && intakeclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                intakeclawClosed=false;
                 intakeclaw.close();
-
-                nonBlockingDelay(200);
-            } else if(gamepad1.y) {
-                intakeclaw.open();
-                nonBlockingDelay(200);
+                nonBlockingDelay(50);
             }
-            // OutputWrist control using gamepad2 left stick y
-            double leftStickY = -gamepad2.left_stick_y; // Invert to match desired direction
-            if (Math.abs(leftStickY) > 0.1) { // Deadzone to prevent accidental movement
-                outputWristPosition += leftStickY * WRIST_INCREMENT;
+            if(gamepad2.b && !intakeclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                intakeclawClosed=true;
+                intakeclaw.open();
+                nonBlockingDelay(50);
+            }
+
+            if (Math.abs(-gamepad2.left_stick_y) > 0.1) { // Deadzone to prevent accidental movement
+                outputWristPosition += -gamepad2.left_stick_y * WRIST_INCREMENT;
                 outputWristPosition = Range.clip(outputWristPosition, 0.0, 1.0);
                 outputArm.setPosition(outputWristPosition);
                 nonBlockingDelay(10);
             }
-            if(gamepad2.a){
+            if(gamepad2.a && outputclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                outputclawClosed=false;
                 output.OpenOutputClaw();
+                nonBlockingDelay(200);
             }
-            else if(gamepad2.y){
+            if(gamepad2.a && !outputclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+                outputclawClosed=true;
                 output.CloseOutputClaw();
+                nonBlockingDelay(50);
             }
             // You can add additional logic here if needed
             telemetry.update();
@@ -141,24 +151,47 @@ public class March2nd extends LinearOpMode {
     }
 
     private void driveControl() {
-        double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
-        double x = gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
-        double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
+        if(gamepad1.right_bumper) {
+            double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
+            double x = gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
+            double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
 
-        // Calculate the largest possible input sum to scale the powers properly
-        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+            // Calculate the largest possible input sum to scale the powers properly
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
 
-        // Calculate motor powers
-        double frontLeftPower = (y + x + rx) / denominator;
-        double backLeftPower = (y - x + rx) / denominator;
-        double frontRightPower = (y - x - rx) / denominator;
-        double backRightPower = (y + x - rx) / denominator;
+            // Calculate motor powers
+            double frontLeftPower = (y + x + rx) / denominator;
+            double backLeftPower = (y - x + rx) / denominator;
+            double frontRightPower = (y - x - rx) / denominator;
+            double backRightPower = (y + x - rx) / denominator;
 
-        // Apply power scaling factor
-        FrontLeftMotor.setPower(-frontLeftPower * FLconstant);
-        BackLeftMotor.setPower(-backLeftPower * BLconstant);
-        FrontRightMotor.setPower(frontRightPower * FRconstant);
-        BackRightMotor.setPower(backRightPower * BRconstant);
+            // Apply power scaling factor
+            FrontLeftMotor.setPower(-frontLeftPower * FLconstant*.3);
+            BackLeftMotor.setPower(-backLeftPower * BLconstant*.3);
+            FrontRightMotor.setPower(frontRightPower * FRconstant*.3);
+            BackRightMotor.setPower(backRightPower * BRconstant*.3);
+        }
+        else{
+            double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
+            double x = gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
+            double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
+
+            // Calculate the largest possible input sum to scale the powers properly
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+
+            // Calculate motor powers
+            double frontLeftPower = (y + x + rx) / denominator;
+            double backLeftPower = (y - x + rx) / denominator;
+            double frontRightPower = (y - x - rx) / denominator;
+            double backRightPower = (y + x - rx) / denominator;
+
+            // Apply power scaling factor
+            FrontLeftMotor.setPower(-frontLeftPower * FLconstant);
+            BackLeftMotor.setPower(-backLeftPower * BLconstant);
+            FrontRightMotor.setPower(frontRightPower * FRconstant);
+            BackRightMotor.setPower(backRightPower * BRconstant);
+
+        }
     }
 
 

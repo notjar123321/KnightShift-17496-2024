@@ -37,7 +37,7 @@ public class ArmTest extends LinearOpMode {
         initializeHardware();
 
         // Now initialize Arm2 after hardware is set up
-        Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+        Arm2 intake = new Arm2(hardwareMap, telemetry);
         IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAW", "WRIST", "ROTATE");
 
         runtime.reset();

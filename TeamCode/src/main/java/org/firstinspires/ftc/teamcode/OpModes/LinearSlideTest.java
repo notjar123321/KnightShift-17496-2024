@@ -38,7 +38,7 @@ public class LinearSlideTest extends LinearOpMode {
         initializeHardware();
 
         // Now initialize Arm2 after hardware is set up
-        Arm2 intake = new Arm2(hardwareMap, new ElapsedTime(), telemetry);
+
         IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAW", "WRIST", "ROTATE");
         LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
 
@@ -64,7 +64,7 @@ public class LinearSlideTest extends LinearOpMode {
         while (opModeIsActive()) {
             if(Math.abs(gamepad2.right_stick_y)>.1 || Math.abs(gamepad2.left_stick_y)>.1){
                 LS1.setPower(gamepad2.right_stick_y);
-                LS2.setPower(gamepad2.left_stick_y);}
+                LS2.setPower(gamepad2.right_stick_y);}
             LS1.setPower(0);
             LS2.setPower(0);
 

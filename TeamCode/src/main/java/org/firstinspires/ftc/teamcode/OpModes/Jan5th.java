@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.OpModes;
+/**package org.firstinspires.ftc.teamcode.OpModes;
 
 import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -268,4 +268,4 @@ public class Jan5th extends LinearOpMode {
         }
         return false;
     }
-}
+}**/
