@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.Classes.Arm2;
 import org.firstinspires.ftc.teamcode.Classes.Arm2gpt;
 import org.firstinspires.ftc.teamcode.Classes.IntakeClaw;
+import org.firstinspires.ftc.teamcode.Classes.LinearSlide;
 import org.firstinspires.ftc.teamcode.Classes.OutputArm;
 
 @Config
@@ -23,6 +24,8 @@ public class March2nd extends LinearOpMode {
     private DcMotor FrontRightMotor = null;
     private DcMotor BackLeftMotor = null;
     private DcMotor BackRightMotor = null;
+    private DcMotor LS1;
+    private DcMotor LS2;
     private Servo  intakeRotate = null;
     private Servo intakeWrist = null;
 
@@ -37,8 +40,19 @@ public class March2nd extends LinearOpMode {
     public static double FRconstant = .45;
     public static double BRconstant = .6;
     public static double BLconstant = .6;
+    public static int LSTOP = 4000;
+    public static int LSBOT = 0;
     private boolean intakeclawClosed = false;
     private boolean outputclawClosed = false;
+    private long lastPressedTimeDpadLeft = 0;
+    private long lastPressedTimeDpadRight = 0;
+    private long lastPressedTimeDpadUp = 0;
+    private long lastPressedTimeDpadDown = 0;
+    private long lastPressedTimeB = 0;
+    private long lastPressedTimeA = 0;
+    private long lastPressedTimeLeftBumper = 0;
+    private long lastPressedTimeRightBumper = 0;
+
 
     // Initial positions for OutputClaw and OutputWrist
 
@@ -57,6 +71,7 @@ public class March2nd extends LinearOpMode {
         Arm2 intake = new Arm2(hardwareMap,  telemetry);
         IntakeClaw intakeclaw = new IntakeClaw(hardwareMap, "CLAW", "WRIST", "ROTATE");
         OutputArm output = new OutputArm(hardwareMap, "OUTPUTCLAW", "OUTPUTARM");
+        LinearSlide LS = new LinearSlide(hardwareMap, new ElapsedTime(), telemetry);
         wristPosition = .5;
         rotatePosition = .5;
         double outputClawPosition = outputClaw.getPosition();
@@ -72,6 +87,7 @@ public class March2nd extends LinearOpMode {
             public void run() {
                 while (opModeIsActive()) {
                     driveControl();
+                    telemetry.update();
                 }
             }
         });
@@ -83,43 +99,55 @@ public class March2nd extends LinearOpMode {
 
         //Gamepad2: a->open/close outputclaw, b->open/close inputclaw, left joytstick ->move output arm, dpad up/down->arm ->bumpers wristup/down,
         while (opModeIsActive()) {
+            if(Math.abs(gamepad2.right_stick_y)>.1){
+                LS1.setPower(gamepad2.right_stick_y);
+                LS2.setPower(gamepad2.right_stick_y);}
+            LS1.setPower(0);
+            LS2.setPower(0);
 
-            if (gamepad2.right_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+            if (gamepad2.right_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeRightBumper)) {
                 rotatePosition = Range.clip(rotatePosition - 0.05, 0, 1);
                 intakeclaw.setRotatePosition(rotatePosition);
-                nonBlockingDelay(200);
-            }
-            if (gamepad1.left_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+                nonBlockingDelay(50);
+            } //check
+            if (gamepad1.left_bumper && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeLeftBumper)) {
                 rotatePosition = Range.clip( rotatePosition + 0.05, 0 , 1);
                 intakeclaw.setRotatePosition(rotatePosition);
-                nonBlockingDelay(200);
-            }
-            if (gamepad1.dpad_left && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+                nonBlockingDelay(50);
+            } //check
+            if (Math.abs(gamepad2.right_trigger)>.1) {
                 wristPosition = Math.max(0, wristPosition - 0.05);
                 intakeclaw.setWristPosition(wristPosition);
-                nonBlockingDelay(200);
-            }
-            if (gamepad1.dpad_right && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)) {
+                nonBlockingDelay(50);
+            } //check
+            if (Math.abs(gamepad1.left_trigger)>.1) {
                 wristPosition = Math.min(1, wristPosition + 0.05);
                 intakeclaw.setWristPosition(wristPosition);
-                nonBlockingDelay(200);
-            }
+                nonBlockingDelay(50);
+            } //check
 
-
-            if(gamepad2.dpad_up ){
+            if(gamepad2.dpad_up ){ //check
                 intake.moveArmBy(20);
-                nonBlockingDelay(100);
+                nonBlockingDelay(10);
             }
-            if(gamepad2.dpad_down ){
+            if(gamepad2.dpad_down ){ //check
                 intake.moveArmBy(-20);
-                nonBlockingDelay(100);
+                nonBlockingDelay(10);
             }
-            if(gamepad2.b && intakeclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+            if(gamepad2.dpad_up){
+                intake.moveArmTo(580);
+                nonBlockingDelay(10);
+            }
+            if(gamepad2.dpad_down){
+                intake.moveArmTo(580);
+                nonBlockingDelay(10);
+            }
+            if(gamepad2.b && intakeclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeB)){
                 intakeclawClosed=false;
                 intakeclaw.close();
                 nonBlockingDelay(50);
             }
-            if(gamepad2.b && !intakeclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+            if(gamepad2.b && !intakeclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeB)){
                 intakeclawClosed=true;
                 intakeclaw.open();
                 nonBlockingDelay(50);
@@ -131,17 +159,30 @@ public class March2nd extends LinearOpMode {
                 outputArm.setPosition(outputWristPosition);
                 nonBlockingDelay(10);
             }
-            if(gamepad2.a && outputclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+            if(gamepad2.a && outputclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeA)){
                 outputclawClosed=false;
                 output.OpenOutputClaw();
-                nonBlockingDelay(200);
+                nonBlockingDelay(50);
             }
-            if(gamepad2.a && !outputclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeBumper)){
+            if(gamepad2.a && !outputclawClosed && isButtonPressed((long) runtime.milliseconds(), lastPressedTimeA)){
                 outputclawClosed=true;
                 output.CloseOutputClaw();
                 nonBlockingDelay(50);
             }
-            // You can add additional logic here if needed
+            if(gamepad2.y){
+                LS.moveLSTo(LSTOP);
+                nonBlockingDelay(10);
+            }
+            if(gamepad2.x){
+                LS.moveLSTo(LSBOT);
+                nonBlockingDelay(10);
+            }
+
+
+            telemetry.addData("LS1 Power", LS1.getPower());
+            telemetry.addData("LS2 Power", LS2.getPower());
+            telemetry.addData("LS1 Position", LS1.getCurrentPosition());
+            telemetry.addData("LS2 Position", LS2.getCurrentPosition());
             telemetry.update();
             intake.update();
         }
@@ -151,7 +192,7 @@ public class March2nd extends LinearOpMode {
     }
 
     private void driveControl() {
-        if(gamepad1.right_bumper) {
+        if(Math.abs(gamepad1.right_trigger)>.1) {
             double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
             double x = gamepad1.left_stick_x;  // Left/right strafing (left stick horizontal)
             double rx = gamepad1.right_stick_x; // Rotation (right stick horizontal)
@@ -166,10 +207,10 @@ public class March2nd extends LinearOpMode {
             double backRightPower = (y + x - rx) / denominator;
 
             // Apply power scaling factor
-            FrontLeftMotor.setPower(-frontLeftPower * FLconstant*.3);
-            BackLeftMotor.setPower(-backLeftPower * BLconstant*.3);
-            FrontRightMotor.setPower(frontRightPower * FRconstant*.3);
-            BackRightMotor.setPower(backRightPower * BRconstant*.3);
+            FrontLeftMotor.setPower(-frontLeftPower * FLconstant*.25);
+            BackLeftMotor.setPower(-backLeftPower * BLconstant*.25);
+            FrontRightMotor.setPower(frontRightPower * FRconstant*.25);
+            BackRightMotor.setPower(backRightPower * BRconstant*.25);
         }
         else{
             double y = -gamepad1.left_stick_y; // Forward/backward (left stick vertical)
@@ -206,6 +247,9 @@ public class March2nd extends LinearOpMode {
         intakeWrist = hardwareMap.get(Servo.class, "WRIST");
         outputClaw = hardwareMap.get(Servo.class, "OUTPUTCLAW");
         outputArm = hardwareMap.get(Servo.class, "OUTPUTARM");
+        LS1 = hardwareMap.get(DcMotor.class, "LS1");
+        LS2 = hardwareMap.get(DcMotor.class, "LS2");
+
 
 
 
@@ -220,6 +264,7 @@ public class March2nd extends LinearOpMode {
     }
     private boolean isButtonPressed(long currentTime, long lastPressedTime) {
         if (currentTime - lastPressedTime > DEBOUNCE_DELAY) {
+            lastPressedTime = currentTime;
             return true;
         }
         return false;
